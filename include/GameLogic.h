@@ -12,8 +12,6 @@
 #include "./include/Constants.h"
 
 using CurrentTime = std::chrono::steady_clock::time_point; // Alias for better readability
-
-enum class PIECE_INDEX {I,O,T,S,Z,J,L};
 namespace PIECES
 {
     const std::array<const std::array<std::bitset<16>, CONSTANTS::ROTATION_COUNT>, CONSTANTS::PIECE_COUNT> ROATATIONS = 
@@ -88,6 +86,11 @@ namespace PIECES
     };
 };
 
+enum class PIECE_INDEX{I,O,T,S,Z,J,L};
+
+enum class Direction{LEFT, RIGHT};
+
+enum class Rotation{CLOCKWISE, COUNTER_CLOCKWISE, HALF_SPIN /*180*/};
 
 struct TileAttributes
 {
@@ -104,22 +107,12 @@ struct Piece
     CurrentTime touchdownTime; // 8 bytes
 };
 
-struct Direction
-{
-
-};
-
-struct Rotation
-{
-
-};
-
 class PieceGenerator {
-public:
+    public:
     PieceGenerator();
     uint8_t getNextPiece();
     const std::deque<uint8_t>& getQueue() const;
-private:
+    private:
     void fillQueue();
     std::vector<uint8_t> bag;
     std::deque<uint8_t> queue;
@@ -128,18 +121,19 @@ private:
 
 class GameLogic
 {
-public:
+    public:
     GameLogic();
     void startNewGame(); 
     void update();       // Move the game forward one "tick"
     bool isGameOver();   // Checking for game loss
+    // NOTE: Did not know where to put this but I just realised that for the movemnet I can use the mod operator. You'll know
     void movePiece(Direction dir);
     void rotatePiece(Rotation dir);
     void softDrop();
     void hardDrop();
     uint32_t getScore() const;
     uint8_t getLevel() const;
-private:
+    private:
     Piece currentPiece;
     uint32_t score;
     uint8_t level;
