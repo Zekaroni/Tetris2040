@@ -13,17 +13,7 @@
 
 using CurrentTime = std::chrono::steady_clock::time_point; // Alias for better readability
 
-enum PIECE_INDEX 
-{
-    I_PIECE,
-    O_PIECE,
-    T_PIECE,
-    S_PIECE,
-    Z_PIECE,
-    J_PIECE,
-    L_PIECE
-};
-
+enum class PIECE_INDEX {I,O,T,S,Z,J,L};
 namespace PIECES
 {
     const std::array<const std::array<std::bitset<16>, CONSTANTS::ROTATION_COUNT>, CONSTANTS::PIECE_COUNT> ROATATIONS = 
