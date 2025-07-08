@@ -36,7 +36,7 @@ I started by modeling the game after the [offical rules](https://tetris.wiki/Tet
 
 ### Rotation
 ![image](https://i.sstatic.net/UbPC9.png)
-
+(source: https://stackoverflow.com/questions/74340309/tetris-rotation-representation)
 ### Bag Generation
 A "bag" in Tetris referres to a shuffled group of tetriminos that are usually shuffled in pairs of 7 or 14 to allow for randomized sequences of the pieces that aren't repetitive. The _[Random Generator](https://tetris.wiki/Random_Generator)_ is the standard bag randomizer. This software uses a custom 7 piece bag randomization that has a queue of 14 for the ability to always have piece _"look ahead"_.
 

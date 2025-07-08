@@ -12,84 +12,92 @@
 #include "./include/Constants.h"
 
 using CurrentTime = std::chrono::steady_clock::time_point; // Alias for better readability
-namespace PIECES
-{
-    const std::array<const std::array<std::bitset<16>, CONSTANTS::ROTATION_COUNT>, CONSTANTS::PIECE_COUNT> ROATATIONS = 
-    {
-        // I Piece
-        std::array<std::bitset<16>, CONSTANTS::ROTATION_COUNT>
-        {
-            std::bitset<16>{0b0000111100000000},
-            std::bitset<16>{0b0010001000100010},
-            std::bitset<16>{0b0000000011110000},
-            std::bitset<16>{0b0100010001000100}
-        },
-        // O Piece
-        std::array<std::bitset<16>, CONSTANTS::ROTATION_COUNT>
-        {
-            std::bitset<16>{0b0110011000000000},
-            std::bitset<16>{0b0110011000000000},
-            std::bitset<16>{0b0110011000000000},
-            std::bitset<16>{0b0110011000000000}
-        },
-        // T Piece
-        std::array<std::bitset<16>, CONSTANTS::ROTATION_COUNT>
-        {
-            std::bitset<16>{0b0100111000000000},
-            std::bitset<16>{0b0100011001000000},
-            std::bitset<16>{0b0000111001000000},
-            std::bitset<16>{0b0100110001000000}
-        },
-        // S Piece
-        std::array<std::bitset<16>, CONSTANTS::ROTATION_COUNT>
-        {
-            std::bitset<16>{0b0110011000000000},
-            std::bitset<16>{0b0100011000100000},
-            std::bitset<16>{0b0000011011000000},
-            std::bitset<16>{0b1000110001000000}
-        },
-        // Z Piece
-        std::array<std::bitset<16>, CONSTANTS::ROTATION_COUNT>
-        {
-            std::bitset<16>{0b1100011000000000},
-            std::bitset<16>{0b0010011001000000},
-            std::bitset<16>{0b0000110001100000},
-            std::bitset<16>{0b0100110010000000}
-        },
-        // J Piece
-        std::array<std::bitset<16>, CONSTANTS::ROTATION_COUNT>
-        {
-            std::bitset<16>{0b1000111000000000},
-            std::bitset<16>{0b0110010001000000},
-            std::bitset<16>{0b0000111000100000},
-            std::bitset<16>{0b0100010011000000}
-        },
-        // L Piece
-        std::array<std::bitset<16>, CONSTANTS::ROTATION_COUNT>
-        {
-            std::bitset<16>{0b0010111000000000},
-            std::bitset<16>{0b0100010001100000},
-            std::bitset<16>{0b0000111010000000},
-            std::bitset<16>{0b1100010001000000}
-        }
-    };
 
-    const std::array<uint16_t, CONSTANTS::PIECE_COUNT> COLORS = 
-    { // TODO: Add colors
-        0b0000000000000000,
-        0b0000000000000000,
-        0b0000000000000000,
-        0b0000000000000000,
-        0b0000000000000000,
-        0b0000000000000000,
-        0b0000000000000000
-    };
+struct PieceProperties
+{
+    const std::array<std::bitset<16>, CONSTANTS::ROTATION_COUNT> rotations;
+    uint16_t color;
 };
 
-enum class PIECE_INDEX{I,O,T,S,Z,J,L};
+namespace GameData
+{
+    inline constexpr std::array<PieceProperties, CONSTANTS::PIECE_COUNT> PIECES = 
+    {{
+        // I Piece
+        {
+            {{
+                std::bitset<16>{0b0000111100000000},
+                std::bitset<16>{0b0010001000100010},
+                std::bitset<16>{0b0000000011110000},
+                std::bitset<16>{0b0100010001000100}
+            }},
+            0x0000 // TODO: Add all the colors
+        },
+        // O Piece
+        {
+            {{
+                std::bitset<16>{0b0110011000000000},
+                std::bitset<16>{0b0110011000000000},
+                std::bitset<16>{0b0110011000000000},
+                std::bitset<16>{0b0110011000000000}
+            }},
+            0x0000
+        },
+        // T Piece
+        {
+            {{
+                std::bitset<16>{0b0100111000000000},
+                std::bitset<16>{0b0100011001000000},
+                std::bitset<16>{0b0000111001000000},
+                std::bitset<16>{0b0100110001000000}
+            }},
+            0x0000
+        },
+        // S Piece
+        {
+            {{
+                std::bitset<16>{0b0110011000000000},
+                std::bitset<16>{0b0100011000100000},
+                std::bitset<16>{0b0000011011000000},
+                std::bitset<16>{0b1000110001000000}
+            }},
+            0x0000
+        },
+        // Z Piece
+        {
+            {{
+                std::bitset<16>{0b1100011000000000},
+                std::bitset<16>{0b0010011001000000},
+                std::bitset<16>{0b0000110001100000},
+                std::bitset<16>{0b0100110010000000}
+            }},
+            0x0000
+        },
+        // J Piece
+        {
+            {{
+                std::bitset<16>{0b1000111000000000},
+                std::bitset<16>{0b0110010001000000},
+                std::bitset<16>{0b0000111000100000},
+                std::bitset<16>{0b0100010011000000}
+            }},
+            0x0000
+        },
+        // L Piece
+        {
+            {{
+                std::bitset<16>{0b0010111000000000},
+                std::bitset<16>{0b0100010001100000},
+                std::bitset<16>{0b0000111010000000},
+                std::bitset<16>{0b1100010001000000}
+            }},
+            0x0000
+        }
+    }};
+};
 
+enum class PieceIndex{I,O,T,S,Z,J,L};
 enum class Direction{LEFT, RIGHT};
-
 enum class Rotation{CLOCKWISE, COUNTER_CLOCKWISE, HALF_SPIN /*180*/};
 
 struct TileAttributes
@@ -104,15 +112,17 @@ struct Piece
     uint16_t position; // Where the TOP-LEFT of the piece bitmask is
     uint8_t pieceIndex: 3; // Three bits for the piece index 0-7
     uint8_t rotation: 2; // Two bits for rotation: 0, 90, 180, 270
+    uint8_t isTouchingDown: 1; // A bool check that take use of "free" memory
     CurrentTime touchdownTime; // 8 bytes
 };
 
 class PieceGenerator {
-    public:
+public:
     PieceGenerator();
     uint8_t getNextPiece();
     const std::deque<uint8_t>& getQueue() const;
-    private:
+
+private:
     void fillQueue();
     std::vector<uint8_t> bag;
     std::deque<uint8_t> queue;
@@ -121,28 +131,32 @@ class PieceGenerator {
 
 class GameLogic
 {
-    public:
+public:
     GameLogic();
     void startNewGame(); 
     void update();       // Move the game forward one "tick"
     bool isGameOver();   // Checking for game loss
-    // NOTE: Did not know where to put this but I just realised that for the movemnet I can use the mod operator. You'll know
+
     void movePiece(Direction dir);
     void rotatePiece(Rotation dir);
     void softDrop();
     void hardDrop();
+
     uint32_t getScore() const;
     uint8_t getLevel() const;
-    private:
+
+private:
+    PieceGenerator pieceRandomizer;
     Piece currentPiece;
     uint32_t score;
     uint8_t level;
     std::bitset<CONSTANTS::TILE_COUNT> playfield;
     std::array<TileAttributes, CONSTANTS::TILE_COUNT> tileData;
+    
     bool isValidPosition();
     void spawnNewPiece();
-    uint8_t checkAndClearLines();
     void clearLine(uint8_t row);
+    uint8_t checkAndClearLines();
     void updateScore(uint8_t linesCleared);
 };
 
