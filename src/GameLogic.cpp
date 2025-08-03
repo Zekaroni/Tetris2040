@@ -139,16 +139,13 @@ bool GameLogic::isValidPosition()
 
 void GameLogic::updateRows(uint8_t endRow, uint8_t rowCount)
 {
-    // TODO: Decide if I want to make a copy here or not, as it is not needed now that I make masks
-    std::bitset<CONSTANTS::TILE_COUNT> playfieldBuffer = playfield;
     uint8_t upperRows = CONSTANTS::BOARD_HEIGHT - endRow - 1 + rowCount;
-    std::bitset<CONSTANTS::TILE_COUNT> upperMask = playfieldBuffer >> (upperRows * CONSTANTS::BOARD_WIDTH);
+    std::bitset<CONSTANTS::TILE_COUNT> upperMask = playfield >> (upperRows * CONSTANTS::BOARD_WIDTH);
     std::bitset<CONSTANTS::TILE_COUNT> lowerMask = CONSTANTS::FULL_BOARD_MASK >> ((endRow + 1) * CONSTANTS::BOARD_WIDTH);
-    std::bitset<CONSTANTS::TILE_COUNT> newBoard  = (
-        (playfieldBuffer & lowerMask) |
+    playfield = (
+        (playfield & lowerMask) |
         (upperMask << ((CONSTANTS::BOARD_HEIGHT - endRow - 1) * CONSTANTS::BOARD_WIDTH))
     );
-    playfield = newBoard;
 };
 
 bool GameLogic::checkAndClearLines()
