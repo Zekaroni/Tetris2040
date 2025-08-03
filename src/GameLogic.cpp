@@ -61,6 +61,7 @@ bool GameLogic::isGameOver()
 
 void GameLogic::movePiece(Direction dir)
 {// NOTE: I just realised that for the movemnet I can use the mod operator. You'll know
+ // NOTE: yeah, no I don't know what I was cooking, rip
    
 };
 
@@ -95,6 +96,7 @@ void GameLogic::spawnNewPiece()
     currentPiece.position = CONSTANTS::STARTING_POSITION;
     currentPiece.rotation = CONSTANTS::STARTING_ROTATION;
     currentPiece.isTouchingDown = false;
+    // touchdown time shouldn't need changed because of isTouchingDown implementation
 };
 
 std::bitset<CONSTANTS::BOARD_WIDTH> GameLogic::getRow(uint8_t rowIndex)
@@ -110,11 +112,40 @@ void GameLogic::updateRows(uint8_t endRow, uint8_t rowCount)
 
 bool GameLogic::isValidPosition()
 {
-    return false;
+    const std::bitset<16>& pieceShape = GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation];
+
+    uint8_t rowIndex    = currentPiece.position /  CONSTANTS::BOARD_WIDTH;
+    uint8_t columnIndex = currentPiece.position - rowIndex * CONSTANTS::BOARD_WIDTH; // Saves cpu instructions for extra division
+    
+    // Decided to add quick check for columns instead of running it in the loop for efficency
+    if (
+        columnIndex + CONSTANTS::PIECE_SIZE > CONSTANTS::BOARD_WIDTH ||
+        rowIndex + CONSTANTS::PIECE_SIZE > CONSTANTS::BOARD_HEIGHT
+    ) // TODO: Work this out to be sure
+    {
+        return false;
+    }
+
+    for (uint8_t row = 0; row < CONSTANTS::PIECE_SIZE; ++row)
+    {
+        for (uint8_t column = 0; column < CONSTANTS::PIECE_SIZE; ++column)
+        {
+            if (
+                pieceShape[row * CONSTANTS::PIECE_SIZE + column] &&
+                playfield[((row + rowIndex) * CONSTANTS::BOARD_WIDTH) + (column + columnIndex)]
+            )
+            {
+                return false;
+            }
+        }
+    }
+    
+    return true;
 };
 
 bool GameLogic::checkAndClearLines()
-{   
+{
+    // TODO: Update based on Python code that has been tested. I don't believe this is right currently
     uint8_t linesCleared = 0;
     uint8_t concurrentLines = 0;
     

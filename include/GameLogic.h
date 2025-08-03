@@ -97,7 +97,7 @@ namespace GameData
     }};
 };
 
-enum class PieceIndex{I,O,T,S,Z,J,L};
+enum class PieceIndex{I,O,T,S,Z,J,L}; // This is piece -> index order
 enum class Direction{LEFT, RIGHT};
 enum class Rotation{CLOCKWISE, COUNTER_CLOCKWISE, HALF_SPIN /*180*/};
 
