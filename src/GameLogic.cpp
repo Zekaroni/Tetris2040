@@ -104,16 +104,10 @@ std::bitset<CONSTANTS::BOARD_WIDTH> GameLogic::getRow(uint8_t rowIndex)
     return std::bitset<CONSTANTS::BOARD_WIDTH>((playfield >> (rowIndex * CONSTANTS::BOARD_WIDTH)).to_ulong());
 };
 
-void GameLogic::updateRows(uint8_t endRow, uint8_t rowCount)
-{
-    std::bitset<CONSTANTS::TILE_COUNT> playfieldBuffer = playfield;
-    playfieldBuffer << ((CONSTANTS::BOARD_HEIGHT - endRow) * CONSTANTS::BOARD_WIDTH);
-};
-
 bool GameLogic::isValidPosition()
 {
     const std::bitset<16>& pieceShape = GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation];
-
+    
     uint8_t rowIndex    = currentPiece.position /  CONSTANTS::BOARD_WIDTH;
     uint8_t columnIndex = currentPiece.position - rowIndex * CONSTANTS::BOARD_WIDTH; // Saves cpu instructions for extra division
     
@@ -125,7 +119,7 @@ bool GameLogic::isValidPosition()
     {
         return false;
     }
-
+    
     for (uint8_t row = 0; row < CONSTANTS::PIECE_SIZE; ++row)
     {
         for (uint8_t column = 0; column < CONSTANTS::PIECE_SIZE; ++column)
@@ -141,6 +135,20 @@ bool GameLogic::isValidPosition()
     }
     
     return true;
+};
+
+void GameLogic::updateRows(uint8_t endRow, uint8_t rowCount)
+{
+    // TODO: Decide if I want to make a copy here or not, as it is not needed now that I make masks
+    std::bitset<CONSTANTS::TILE_COUNT> playfieldBuffer = playfield;
+    uint8_t upperRows = CONSTANTS::BOARD_HEIGHT - endRow - 1 + rowCount;
+    std::bitset<CONSTANTS::TILE_COUNT> upperMask = playfieldBuffer >> (upperRows * CONSTANTS::BOARD_WIDTH);
+    std::bitset<CONSTANTS::TILE_COUNT> lowerMask = CONSTANTS::FULL_BOARD_MASK >> ((endRow + 1) * CONSTANTS::BOARD_WIDTH);
+    std::bitset<CONSTANTS::TILE_COUNT> newBoard  = (
+        (playfieldBuffer & lowerMask) |
+        (upperMask << ((CONSTANTS::BOARD_HEIGHT - endRow - 1) * CONSTANTS::BOARD_WIDTH))
+    );
+    playfield = newBoard;
 };
 
 bool GameLogic::checkAndClearLines()
@@ -174,6 +182,6 @@ bool GameLogic::checkAndClearLines()
 };
 
 void GameLogic::updateScore(uint8_t linesCleared)
-{
+{ // TODO: Decide if piece needs passed or just uses currentPiece
 
 };
