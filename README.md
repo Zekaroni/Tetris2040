@@ -35,7 +35,7 @@ Tetris2040/
 I started by modeling the game after the [offical rules](https://tetris.wiki/Tetris_Guideline) first, giving me a nice base to work with and the ability to start adding on community rules later if I wanted to.
 
 ### Rotation
-![image](https://i.sstatic.net/UbPC9.png)
+![image](https://i.sstatic.net/UbPC9.png)<br>
 (source: https://stackoverflow.com/questions/74340309/tetris-rotation-representation)
 ### Bag Generation
 A "bag" in Tetris referres to a shuffled group of tetriminos that are usually shuffled in pairs of 7 or 14 to allow for randomized sequences of the pieces that aren't repetitive. The _[Random Generator](https://tetris.wiki/Random_Generator)_ is the standard bag randomizer. This software uses a custom 7 piece bag randomization that has a queue of 14 for the ability to always have piece _"look ahead"_.
@@ -44,6 +44,10 @@ A "bag" in Tetris referres to a shuffled group of tetriminos that are usually sh
 
 ### Bitmaps or Bitsets or Bitarrays
 [Bitmaps](https://www.tutorialspoint.com/what-is-bitmap) are something I learned about a long time ago when watching Sebastian Lague's YouTube channel where he does various coding projects under the name "Coding Adventures". More specifically, his chess series is where I drew my main inspiration for using bitmaps for effiecency in memory and compute time. The way I implement these maps will be with the built-in functionality of [std::bitset](https://en.cppreference.com/w/cpp/utility/bitset.html), allowing me to define the exact size I need and take advantage of the already avalible functions.
+
+### Bitwise Operations
+![image](https://miro.medium.com/v2/resize:fit:828/format:webp/1*lwKj-TpvToBxuq98LXII1A.png)<br>
+(source: https://medium.com/@amiratak88/bitwise-operators-in-a-nutshell-2f4c6d4f53a1)
 
 ## Testing
 ### Emulation
