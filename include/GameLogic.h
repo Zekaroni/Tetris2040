@@ -16,7 +16,8 @@ using CurrentTime = std::chrono::steady_clock::time_point; // Alias for better r
 struct PieceProperties
 {
     const std::array<std::bitset<16>, CONSTANTS::ROTATION_COUNT> rotations;
-    uint16_t color;
+    uint16_t color; // TODO: Add an 8 bit pallete instead of 16bit color
+                    // This allows each engine to handle the color differently
 };
 
 namespace GameData
@@ -109,9 +110,9 @@ struct TileAttributes
 
 struct Piece
 { // 11 bytes total
-    uint16_t position; // Where the TOP-LEFT of the piece bitmask is
-    uint8_t pieceIndex: 3; // Three bits for the piece index 0-7
-    uint8_t rotation: 2; // Two bits for rotation: 0, 90, 180, 270
+    uint16_t position;         // Where the TOP-LEFT of the piece bitmask is
+    uint8_t pieceIndex: 3;     // Three bits for the piece index 0-7
+    uint8_t rotation: 2;       // Two bits for rotation: 0, 90, 180, 270
     uint8_t isTouchingDown: 1; // A bool check that take use of "free" memory
     CurrentTime touchdownTime; // 8 bytes
 };
@@ -149,14 +150,15 @@ private:
     PieceGenerator pieceRandomizer;
     Piece currentPiece;
     uint32_t score;
-    uint8_t level;
+    uint8_t level;  
     std::bitset<CONSTANTS::TILE_COUNT> playfield;
     std::array<TileAttributes, CONSTANTS::TILE_COUNT> tileData;
     
-    bool isValidPosition();
     void spawnNewPiece();
-    void clearLine(uint8_t row);
-    uint8_t checkAndClearLines();
+    std::bitset<CONSTANTS::BOARD_WIDTH> getRow(uint8_t rowIndex);
+    void updateRows(uint8_t endRow, uint8_t rowCount);
+    bool isValidPosition();
+    bool checkAndClearLines();
     void updateScore(uint8_t linesCleared);
 };
 

@@ -36,7 +36,6 @@ void PieceGenerator::fillQueue()
 };
 
 
-
 /*
 This is the code for the actual game logic itself
 */
@@ -47,7 +46,7 @@ GameLogic::GameLogic()
 
 void GameLogic::startNewGame()
 {
-    // currentPiece.pieceIndex = pieceGen
+    spawnNewPiece();
 };
 
 void GameLogic::update()
@@ -63,11 +62,6 @@ bool GameLogic::isGameOver()
 void GameLogic::movePiece(Direction dir)
 {// NOTE: I just realised that for the movemnet I can use the mod operator. You'll know
    
-};
-
-void GameLogic::movePiece(Direction dir)
-{
-
 };
 
 void GameLogic::rotatePiece(Rotation dir)
@@ -87,17 +81,12 @@ void GameLogic::hardDrop()
 
 uint32_t GameLogic::getScore() const
 {
-
+    return score;
 };
 
 uint8_t GameLogic::getLevel() const
 {
-
-};
-
-bool GameLogic::isValidPosition()
-{
-
+    return level;
 };
 
 void GameLogic::spawnNewPiece()
@@ -108,14 +97,49 @@ void GameLogic::spawnNewPiece()
     currentPiece.isTouchingDown = false;
 };
 
-void GameLogic::clearLine(uint8_t row)
+std::bitset<CONSTANTS::BOARD_WIDTH> GameLogic::getRow(uint8_t rowIndex)
 {
-
+    return std::bitset<CONSTANTS::BOARD_WIDTH>((playfield >> (rowIndex * CONSTANTS::BOARD_WIDTH)).to_ulong());
 };
 
-uint8_t GameLogic::checkAndClearLines()
+void GameLogic::updateRows(uint8_t endRow, uint8_t rowCount)
 {
+    std::bitset<CONSTANTS::TILE_COUNT> playfieldBuffer = playfield;
+    playfieldBuffer << ((CONSTANTS::BOARD_HEIGHT - endRow) * CONSTANTS::BOARD_WIDTH);
+};
 
+bool GameLogic::isValidPosition()
+{
+    return false;
+};
+
+bool GameLogic::checkAndClearLines()
+{   
+    uint8_t linesCleared = 0;
+    uint8_t concurrentLines = 0;
+    
+    for (uint8_t row = 0; row < CONSTANTS::BOARD_HEIGHT; ++row)
+    {
+        if (getRow(row).all())
+        {
+            ++linesCleared;
+            ++concurrentLines;
+        }
+        else
+        {
+            if (concurrentLines)
+            {
+                updateRows(row, concurrentLines);
+            }
+        }
+    }
+    
+    if (linesCleared)
+    {
+        updateScore(linesCleared);
+        return true;
+    }
+    return false;
 };
 
 void GameLogic::updateScore(uint8_t linesCleared)
