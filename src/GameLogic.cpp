@@ -137,37 +137,42 @@ bool GameLogic::isValidPosition()
     return true;
 };
 
-void GameLogic::updateRows(uint8_t endRow, uint8_t rowCount)
+void GameLogic::updateRows(uint8_t startRow, uint8_t rowCount)
 {
-    uint8_t upperRows = CONSTANTS::BOARD_HEIGHT - endRow - 1 + rowCount;
-    std::bitset<CONSTANTS::TILE_COUNT> upperMask = playfield >> (upperRows * CONSTANTS::BOARD_WIDTH);
-    std::bitset<CONSTANTS::TILE_COUNT> lowerMask = CONSTANTS::FULL_BOARD_MASK >> ((endRow + 1) * CONSTANTS::BOARD_WIDTH);
+    std::bitset<CONSTANTS::TILE_COUNT> upperMask = playfield >>
+        ((CONSTANTS::BOARD_HEIGHT - startRow - 1) * CONSTANTS::BOARD_WIDTH);
+    
+    std::bitset<CONSTANTS::TILE_COUNT> lowerMask = CONSTANTS::FULL_BOARD_MASK >>
+        ((startRow + rowCount) * CONSTANTS::BOARD_WIDTH); // (+ 1) ?
+
     playfield = (
         (playfield & lowerMask) |
-        (upperMask << ((CONSTANTS::BOARD_HEIGHT - endRow - 1) * CONSTANTS::BOARD_WIDTH))
+        (upperMask << 
+            ((CONSTANTS::BOARD_HEIGHT - startRow - rowCount - 1) * CONSTANTS::BOARD_WIDTH)
+        )
     );
 };
 
 bool GameLogic::checkAndClearLines()
 {
-    // TODO: Update based on Python code that has been tested. I don't believe this is right currently
-    uint8_t linesCleared = 0;
+    uint8_t linesCleared    = 0;
     uint8_t concurrentLines = 0;
+    uint8_t currentRow      = CONSTANTS::BOARD_HEIGHT - 1;
     
-    for (uint8_t row = 0; row < CONSTANTS::BOARD_HEIGHT; ++row)
+    while (currentRow < CONSTANTS::BOARD_HEIGHT) // uses underflow
     {
-        if (getRow(row).all())
+        if (getRow(currentRow).all())
         {
-            ++linesCleared;
             ++concurrentLines;
         }
-        else
+        else if (concurrentLines)
         {
-            if (concurrentLines)
-            {
-                updateRows(row, concurrentLines);
-            }
+            updateRows(currentRow, concurrentLines);
+            linesCleared += concurrentLines;
+            currentRow   += concurrentLines;
+            concurrentLines = 0;
         }
+        --currentRow;
     }
     
     if (linesCleared)

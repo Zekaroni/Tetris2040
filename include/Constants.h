@@ -17,7 +17,7 @@ namespace CONSTANTS
     constexpr uint8_t STARTING_GRAVITY   = 1;
     constexpr uint16_t FULL_LINE_MASK    = (1 << BOARD_WIDTH) - 1; // Favorite line so far
     constexpr uint16_t TILE_COUNT        = BOARD_HEIGHT * BOARD_WIDTH;
-    constexpr std::bitset<TILE_COUNT> FULL_BOARD_MASK = (1 << TILE_COUNT) - 1;
+    const std::bitset<TILE_COUNT> FULL_BOARD_MASK = std::bitset<TILE_COUNT>().set();
 };
 
 #endif
