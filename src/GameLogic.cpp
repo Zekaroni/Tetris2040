@@ -46,7 +46,7 @@ GameLogic::GameLogic()
 
 void GameLogic::startNewGame()
 {
-    spawnNewPiece();
+    generateNewPiece();
 };
 
 void GameLogic::update()
@@ -90,7 +90,7 @@ uint8_t GameLogic::getLevel() const
     return level;
 };
 
-void GameLogic::spawnNewPiece()
+void GameLogic::generateNewPiece()
 {
     currentPiece.pieceIndex = pieceRandomizer.getNextPiece();
     currentPiece.position = CONSTANTS::STARTING_POSITION;
