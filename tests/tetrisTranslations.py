@@ -1,29 +1,8 @@
 import os
 
-class TetrisTester:
-    def __init__(self, debug = False):
-        self.playfield = int((b'' \
-            b'0000000000' \
-            b'0000000000' \
-            b'0000000000' \
-            b'0000000000' \
-            b'0000000000' \
-            b'0000000000' \
-            b'0000000000' \
-            b'0000000000' \
-            b'0000000000' \
-            b'0000000000' \
-            b'0000000000' \
-            b'0000000000' \
-            b'0000000000' \
-            b'0000000000' \
-            b'1111111111' \
-            b'1111111110' \
-            b'1111111111' \
-            b'1111111111' \
-            b'1111111001' \
-            b'1111111001'), 2)
-        
+class Tetris:
+    def __init__(self, playfield: int = 0, debug: bool = False):
+        self.playfield = playfield
         self.boardHeight   = 20
         self.boardWidth    = 10
         self.tileCount     =  self.boardHeight * self.boardWidth
@@ -32,12 +11,12 @@ class TetrisTester:
 
         self.debug = debug
 
-    def getRow(self, rowIndex):
+    def getRow(self, rowIndex) -> int:
         shift = (self.boardHeight - rowIndex - 1) * self.boardWidth
         mask = (1 << self.boardWidth) - 1
         return (self.playfield >> shift) & mask
 
-    def checkAndClearLines(self):
+    def checkAndClearLines(self) -> bool:
         linesCleared = 0
         concurrentLines = 0
         row = self.boardHeight - 1
@@ -66,10 +45,7 @@ class TetrisTester:
             
             row-=1
 
-        if linesCleared:
-            return True
-
-        return False
+        return linesCleared
 
     def updateRows(self, startRow, concurrentRows):
         buffer = self.playfield # This will be not be needed in C++, use actual instead of buffer
@@ -117,9 +93,15 @@ class TetrisTester:
             start = position
             end   = position + self.boardWidth
             print(board[start:end])
+    
+    def getBoard(self) -> int:
+        """
+        return: an int representation of the board
+        """
+        return int(self.playfield)
 
 if __name__ == "__main__":
     os.system("cls")
-    tetris = TetrisTester()
+    tetris = Tetris()
     tetris.checkAndClearLines()
-    tetris.printBoard()
+    print(tetris.getBoard())
