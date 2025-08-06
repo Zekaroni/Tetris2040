@@ -135,7 +135,7 @@ class PieceGenerator {
 
 class GameLogic
 {
-    public:
+public:
     GameLogic();
     void startNewGame(); 
     void update();       // Move the game forward one "tick"
@@ -149,7 +149,7 @@ class GameLogic
     uint32_t getScore() const;
     uint8_t getLevel() const;
     
-    private:
+private:
     PieceGenerator pieceRandomizer;
     Piece currentPiece;
     uint32_t score;
@@ -159,7 +159,7 @@ class GameLogic
     CurrentTime currentPieceTouchdownTime;
     
     void generateNewPiece();
-    std::bitset<GAME_CONSTANTS::BOARD_WIDTH> getRow(uint8_t rowIndex);
+    uint16_t getRow(uint8_t rowIndex);
     void updateRows(uint8_t endRow, uint8_t rowCount);
     bool isValidPosition();
     bool checkAndClearLines();

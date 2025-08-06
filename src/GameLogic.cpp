@@ -99,9 +99,9 @@ void GameLogic::generateNewPiece()
     // touchdown time shouldn't need changed because of isTouchingDown implementation
 };
 
-std::bitset<GAME_CONSTANTS::BOARD_WIDTH> GameLogic::getRow(uint8_t rowIndex)
+uint16_t GameLogic::getRow(uint8_t rowIndex)
 {
-    return std::bitset<GAME_CONSTANTS::BOARD_WIDTH>((playfield >> (rowIndex * GAME_CONSTANTS::BOARD_WIDTH)).to_ulong());
+    return (playfield >> (rowIndex * GAME_CONSTANTS::BOARD_WIDTH)).to_ulong() & GAME_CONSTANTS::FULL_LINE_MASK;
 };
 
 bool GameLogic::isValidPosition()
@@ -161,7 +161,7 @@ bool GameLogic::checkAndClearLines()
     
     while (currentRow < GAME_CONSTANTS::BOARD_HEIGHT) // uses underflow
     {
-        if (getRow(currentRow).all())
+        if (getRow(currentRow) == GAME_CONSTANTS::FULL_LINE_MASK)
         {
             ++concurrentLines;
         }
