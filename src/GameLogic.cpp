@@ -116,10 +116,16 @@ bool GameLogic::isValidPosition()
         columnIndex + GAME_CONSTANTS::PIECE_SIZE > GAME_CONSTANTS::BOARD_WIDTH ||
         rowIndex + GAME_CONSTANTS::PIECE_SIZE > GAME_CONSTANTS::BOARD_HEIGHT
     ) // TODO: Work this out to be sure
+      // NOTE: I just thought about this and I don't think this works unfortunately
+      // like in the case of a t piece being at the bottom and its only 3x3
+      // but the bounding box checks 4x4 so technically it will be outside bounds.
+      // Maybe check that it is out of bounds AND is a 1.
     {
         return false;
     }
     
+    // TODO: Same issue here with pieces not being as big as their bouding box.
+    // Add checks for zeros
     for (uint8_t row = 0; row < GAME_CONSTANTS::PIECE_SIZE; ++row)
     {
         for (uint8_t column = 0; column < GAME_CONSTANTS::PIECE_SIZE; ++column)
@@ -185,6 +191,7 @@ bool GameLogic::checkAndClearLines()
 
 void GameLogic::updateScore(uint8_t linesCleared)
 { // TODO: Decide if piece needs passed or just uses currentPiece
+    // NOTE: Implement combos into the score?
     switch (currentPiece.pieceIndex)
     {
         case I:

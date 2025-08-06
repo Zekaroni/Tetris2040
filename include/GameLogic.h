@@ -26,6 +26,28 @@ namespace GAME_CONSTANTS
     const std::bitset<TILE_COUNT> FULL_BOARD_MASK = std::bitset<TILE_COUNT>().set();
 };
 
+namespace CLEAR_SCORINGS
+{ // NOTE: I do not care about sd or hd points... they are like so little
+    // Standard Clears
+    constexpr uint16_t SINGLE_LINE = 100;
+    constexpr uint16_t DOUBLE_LINE = 300;
+    constexpr uint16_t TRIPLE_LINE = 500;
+    constexpr uint16_t TETRIS      = 800;
+
+    // T-Spins Clears
+    constexpr uint16_t TSPIN_SINGLE = 800;
+    constexpr uint16_t TSPIN_DOUBLE = 1200;
+    constexpr uint16_t TSPIN_TRIPLE = 1600;
+
+    // B2B Clears
+    constexpr uint16_t B2B_TETRIS       = 1200;
+    constexpr uint16_t B2B_TSPIN_SINGLE = 1200;
+    constexpr uint16_t B2B_TSPIN_DOUBLE = 1800;
+    constexpr uint16_t B2B_TSPIN_TRIPLE = 2400;
+
+    // NOTE: Do I want to add all spin scoring? I think that could be fun.
+};
+
 enum Direction{LEFT, RIGHT};
 enum Rotation{CLOCKWISE, COUNTER_CLOCKWISE, HALF_SPIN /*180*/};
 enum PieceIndex{I,O,T,S,Z,J,L,NULL_PIECE}; // This is piece -> index order
@@ -54,8 +76,7 @@ namespace GameData
 {
     const PieceProperties PIECES[GAME_CONSTANTS::PIECE_COUNT] = 
     {
-        // I Piece
-        {
+      { // I Piece
             {
                 0b0000111100000000,
                 0b0010001000100010,
@@ -63,8 +84,7 @@ namespace GameData
                 0b0100010001000100
             },
         },
-        // O Piece
-        {
+        { // O Piece
             {
                 0b0110011000000000,
                 0b0110011000000000,
@@ -72,8 +92,7 @@ namespace GameData
                 0b0110011000000000
             },
         },
-        // T Piece
-        {
+        { // T Piece
             {
                 0b0100111000000000,
                 0b0100011001000000,
@@ -81,8 +100,7 @@ namespace GameData
                 0b0100110001000000
             },
         },
-        // S Piece
-        {
+        { // S Piece
             {
                 0b0110011000000000,
                 0b0100011000100000,
@@ -90,8 +108,7 @@ namespace GameData
                 0b1000110001000000
             },
         },
-        // Z Piece
-        {
+        { // Z Piece
             {
                 0b1100011000000000,
                 0b0010011001000000,
@@ -99,8 +116,7 @@ namespace GameData
                 0b0100110010000000
             },
         },
-        // J Piece
-        {
+        { // J Piece
             {
                 0b1000111000000000,
                 0b0110010001000000,
@@ -108,8 +124,7 @@ namespace GameData
                 0b0100010011000000
             },
         },
-        // L Piece
-        {
+        { // L Piece
             {
                 0b0010111000000000,
                 0b0100010001100000,
@@ -118,6 +133,9 @@ namespace GameData
             },
         }
     };
+
+    // TODO: I will have to make masks for every possible T-Spin and other speical case
+    // for each piece
 };
 
 class PieceGenerator {
