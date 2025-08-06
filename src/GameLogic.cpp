@@ -185,5 +185,26 @@ bool GameLogic::checkAndClearLines()
 
 void GameLogic::updateScore(uint8_t linesCleared)
 { // TODO: Decide if piece needs passed or just uses currentPiece
-
+    switch (currentPiece.pieceIndex)
+    {
+        case I:
+            break;
+        case O:
+            break;
+        case T:
+            break;
+        case S:
+            break;
+        case Z:
+            break;
+        case J:
+            break;
+        case L:
+            break;
+        case NULL_PIECE:
+            break;
+        default:
+            // Should never happen but here for safety
+            break;
+    };
 };

@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <chrono>
 
+using CurrentTime = std::chrono::steady_clock::time_point; // Alias for better readability
+
 namespace GAME_CONSTANTS
 {
     constexpr uint8_t PIECE_COUNT       = 7;
@@ -24,12 +26,28 @@ namespace GAME_CONSTANTS
     const std::bitset<TILE_COUNT> FULL_BOARD_MASK = std::bitset<TILE_COUNT>().set();
 };
 
-
-using CurrentTime = std::chrono::steady_clock::time_point; // Alias for better readability
+enum Direction{LEFT, RIGHT};
+enum Rotation{CLOCKWISE, COUNTER_CLOCKWISE, HALF_SPIN /*180*/};
+enum PieceIndex{I,O,T,S,Z,J,L,NULL_PIECE}; // This is piece -> index order
 
 struct PieceProperties
 { // color was removed and instead will be picked up by graphic engine with pience index
     const uint16_t rotations[GAME_CONSTANTS::ROTATION_COUNT];
+};
+
+struct TileAttributes
+{ // 1 bytes total
+    uint8_t pieceIndex: 3; // 0-6 relates to a piece (if 7, no piece)
+    uint8_t state:      4; // TBD what these four bits can be for
+    uint8_t flashing:   1; // Something for line clears maybe?
+};
+
+struct Piece
+{ // 2 bytes total
+    uint8_t position;          // Where the TOP-LEFT of the piece bitmask is
+    uint8_t pieceIndex:     3; // Three bits for the piece index 0-7
+    uint8_t rotation:       2; // Two bits for rotation: 0, 90, 180, 270
+    uint8_t isTouchingDown: 1; // true if piece touched ground
 };
 
 namespace GameData
@@ -100,25 +118,6 @@ namespace GameData
             },
         }
     };
-};
-
-enum class PieceIndex{I,O,T,S,Z,J,L}; // This is piece -> index order
-enum class Direction{LEFT, RIGHT};
-enum class Rotation{CLOCKWISE, COUNTER_CLOCKWISE, HALF_SPIN /*180*/};
-
-struct TileAttributes
-{ // 1 bytes total
-    uint8_t pieceIndex: 3; // 0-6 relates to a piece (if 7, no piece)
-    uint8_t state : 4;     // TBD what these four bits can be for
-    uint8_t flashing: 1;   // Something for line clears maybe?
-};
-
-struct Piece
-{ // 2 bytes total
-    uint8_t position;          // Where the TOP-LEFT of the piece bitmask is
-    uint8_t pieceIndex: 3;     // Three bits for the piece index 0-7
-    uint8_t rotation: 2;       // Two bits for rotation: 0, 90, 180, 270
-    uint8_t isTouchingDown: 1; // true if piece touched ground
 };
 
 class PieceGenerator {
