@@ -8,18 +8,33 @@
 #include <algorithm>
 #include <chrono>
 
-#include "./include/Constants.h"
+namespace GAME_CONSTANTS
+{
+    constexpr uint8_t PIECE_COUNT       = 7;
+    constexpr uint8_t ROTATION_COUNT    = 4;
+    constexpr uint8_t PIECE_SIZE        = 4; // x * x bounding box
+    constexpr uint8_t BOARD_WIDTH       = 10;
+    constexpr uint8_t BOARD_HEIGHT      = 20;
+    constexpr uint8_t STARTING_POSITION = 4;
+    constexpr uint8_t STARTING_ROTATION = 0;
+    constexpr uint8_t BAG_MIN_LIMIT     = 14;
+    constexpr uint8_t STARTING_GRAVITY  = 1;
+    constexpr uint8_t TILE_COUNT        = BOARD_HEIGHT * BOARD_WIDTH;
+    constexpr uint8_t FULL_LINE_MASK    = (1 << BOARD_WIDTH) - 1; // Favorite line so far
+    const std::bitset<TILE_COUNT> FULL_BOARD_MASK = std::bitset<TILE_COUNT>().set();
+};
+
 
 using CurrentTime = std::chrono::steady_clock::time_point; // Alias for better readability
 
 struct PieceProperties
 { // color was removed and instead will be picked up by graphic engine with pience index
-    const uint16_t rotations[CONSTANTS::ROTATION_COUNT];
+    const uint16_t rotations[GAME_CONSTANTS::ROTATION_COUNT];
 };
 
 namespace GameData
 {
-    const PieceProperties PIECES[CONSTANTS::PIECE_COUNT] = 
+    const PieceProperties PIECES[GAME_CONSTANTS::PIECE_COUNT] = 
     {
         // I Piece
         {
@@ -140,12 +155,12 @@ class GameLogic
     Piece currentPiece;
     uint32_t score;
     uint8_t level;  
-    std::bitset<CONSTANTS::TILE_COUNT> playfield;
-    TileAttributes tileData[CONSTANTS::TILE_COUNT];
+    std::bitset<GAME_CONSTANTS::TILE_COUNT> playfield;
+    TileAttributes tileData[GAME_CONSTANTS::TILE_COUNT];
     CurrentTime currentPieceTouchdownTime;
     
     void generateNewPiece();
-    std::bitset<CONSTANTS::BOARD_WIDTH> getRow(uint8_t rowIndex);
+    std::bitset<GAME_CONSTANTS::BOARD_WIDTH> getRow(uint8_t rowIndex);
     void updateRows(uint8_t endRow, uint8_t rowCount);
     bool isValidPosition();
     bool checkAndClearLines();

@@ -11,7 +11,7 @@ PieceGenerator::PieceGenerator() : rng(std::random_device{}())
 
 uint8_t PieceGenerator::getNextPiece()
 {
-    if (queue.size() < CONSTANTS::BAG_MIN_LIMIT)
+    if (queue.size() < GAME_CONSTANTS::BAG_MIN_LIMIT)
     { // Replenish the bag when down to 
         fillQueue();
     }
@@ -93,40 +93,40 @@ uint8_t GameLogic::getLevel() const
 void GameLogic::generateNewPiece()
 {
     currentPiece.pieceIndex = pieceRandomizer.getNextPiece();
-    currentPiece.position = CONSTANTS::STARTING_POSITION;
-    currentPiece.rotation = CONSTANTS::STARTING_ROTATION;
+    currentPiece.position = GAME_CONSTANTS::STARTING_POSITION;
+    currentPiece.rotation = GAME_CONSTANTS::STARTING_ROTATION;
     currentPiece.isTouchingDown = false;
     // touchdown time shouldn't need changed because of isTouchingDown implementation
 };
 
-std::bitset<CONSTANTS::BOARD_WIDTH> GameLogic::getRow(uint8_t rowIndex)
+std::bitset<GAME_CONSTANTS::BOARD_WIDTH> GameLogic::getRow(uint8_t rowIndex)
 {
-    return std::bitset<CONSTANTS::BOARD_WIDTH>((playfield >> (rowIndex * CONSTANTS::BOARD_WIDTH)).to_ulong());
+    return std::bitset<GAME_CONSTANTS::BOARD_WIDTH>((playfield >> (rowIndex * GAME_CONSTANTS::BOARD_WIDTH)).to_ulong());
 };
 
 bool GameLogic::isValidPosition()
 {
     const std::bitset<16>& pieceShape = GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation];
     
-    uint8_t rowIndex    = currentPiece.position /  CONSTANTS::BOARD_WIDTH;
-    uint8_t columnIndex = currentPiece.position - rowIndex * CONSTANTS::BOARD_WIDTH; // Saves cpu instructions for extra division
+    uint8_t rowIndex    = currentPiece.position /  GAME_CONSTANTS::BOARD_WIDTH;
+    uint8_t columnIndex = currentPiece.position - rowIndex * GAME_CONSTANTS::BOARD_WIDTH; // Saves cpu instructions for extra division
     
     // Decided to add quick check for columns instead of running it in the loop for efficency
     if (
-        columnIndex + CONSTANTS::PIECE_SIZE > CONSTANTS::BOARD_WIDTH ||
-        rowIndex + CONSTANTS::PIECE_SIZE > CONSTANTS::BOARD_HEIGHT
+        columnIndex + GAME_CONSTANTS::PIECE_SIZE > GAME_CONSTANTS::BOARD_WIDTH ||
+        rowIndex + GAME_CONSTANTS::PIECE_SIZE > GAME_CONSTANTS::BOARD_HEIGHT
     ) // TODO: Work this out to be sure
     {
         return false;
     }
     
-    for (uint8_t row = 0; row < CONSTANTS::PIECE_SIZE; ++row)
+    for (uint8_t row = 0; row < GAME_CONSTANTS::PIECE_SIZE; ++row)
     {
-        for (uint8_t column = 0; column < CONSTANTS::PIECE_SIZE; ++column)
+        for (uint8_t column = 0; column < GAME_CONSTANTS::PIECE_SIZE; ++column)
         {
             if (
-                pieceShape[row * CONSTANTS::PIECE_SIZE + column] &&
-                playfield[((row + rowIndex) * CONSTANTS::BOARD_WIDTH) + (column + columnIndex)]
+                pieceShape[row * GAME_CONSTANTS::PIECE_SIZE + column] &&
+                playfield[((row + rowIndex) * GAME_CONSTANTS::BOARD_WIDTH) + (column + columnIndex)]
             )
             {
                 return false;
@@ -139,16 +139,16 @@ bool GameLogic::isValidPosition()
 
 void GameLogic::updateRows(uint8_t startRow, uint8_t rowCount)
 {
-    std::bitset<CONSTANTS::TILE_COUNT> upperMask = playfield >>
-        ((CONSTANTS::BOARD_HEIGHT - startRow - 1) * CONSTANTS::BOARD_WIDTH);
+    std::bitset<GAME_CONSTANTS::TILE_COUNT> upperMask = playfield >>
+        ((GAME_CONSTANTS::BOARD_HEIGHT - startRow - 1) * GAME_CONSTANTS::BOARD_WIDTH);
     
-    std::bitset<CONSTANTS::TILE_COUNT> lowerMask = CONSTANTS::FULL_BOARD_MASK >>
-        ((startRow + rowCount) * CONSTANTS::BOARD_WIDTH); // (+ 1) ?
+    std::bitset<GAME_CONSTANTS::TILE_COUNT> lowerMask = GAME_CONSTANTS::FULL_BOARD_MASK >>
+        ((startRow + rowCount) * GAME_CONSTANTS::BOARD_WIDTH); // (+ 1) ?
 
     playfield = (
         (playfield & lowerMask) |
         (upperMask << 
-            ((CONSTANTS::BOARD_HEIGHT - startRow - rowCount - 1) * CONSTANTS::BOARD_WIDTH)
+            ((GAME_CONSTANTS::BOARD_HEIGHT - startRow - rowCount - 1) * GAME_CONSTANTS::BOARD_WIDTH)
         )
     );
 };
@@ -157,9 +157,9 @@ bool GameLogic::checkAndClearLines()
 {
     uint8_t linesCleared    = 0;
     uint8_t concurrentLines = 0;
-    uint8_t currentRow      = CONSTANTS::BOARD_HEIGHT - 1;
+    uint8_t currentRow      = GAME_CONSTANTS::BOARD_HEIGHT - 1;
     
-    while (currentRow < CONSTANTS::BOARD_HEIGHT) // uses underflow
+    while (currentRow < GAME_CONSTANTS::BOARD_HEIGHT) // uses underflow
     {
         if (getRow(currentRow).all())
         {
