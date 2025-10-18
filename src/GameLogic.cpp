@@ -12,7 +12,7 @@ PieceGenerator::PieceGenerator() : rng(std::random_device{}())
 uint8_t PieceGenerator::getNextPiece()
 {
     if (queue.size() < GAME_CONSTANTS::BAG_MIN_LIMIT)
-    { // Replenish the bag when down to 
+    { // Replenish the bag when down to (TO WHAT? :'())
         fillQueue();
     }
     uint8_t next = queue.front();
@@ -62,6 +62,8 @@ bool GameLogic::isGameOver()
 void GameLogic::movePiece(Direction dir)
 {// NOTE: I just realised that for the movemnet I can use the mod operator. You'll know
  // NOTE: yeah, no I don't know what I was cooking, rip
+ // NOTE: looked again and yeah idk, I feel like I was cooking but idk
+ // NOTE: Still have no idea how I'd use the mod operator
    
 };
 
@@ -80,7 +82,7 @@ void GameLogic::hardDrop()
 
 };
 
-uint32_t GameLogic::getScore() const
+uint64_t GameLogic::getScore() const
 {
     return score;
 };
@@ -192,26 +194,8 @@ bool GameLogic::checkAndClearLines()
 void GameLogic::updateScore(uint8_t linesCleared)
 { // TODO: Decide if piece needs passed or just uses currentPiece
     // NOTE: Implement combos into the score?
-    switch (currentPiece.pieceIndex)
-    {
-        case I:
-            break;
-        case O:
-            break;
-        case T:
-            break;
-        case S:
-            break;
-        case Z:
-            break;
-        case J:
-            break;
-        case L:
-            break;
-        case NULL_PIECE:
-            break;
-        default:
-            // Should never happen but here for safety
-            break;
-    };
+    const uint16_t* table =
+    CLEAR_SCORINGS::SCORE_TABLE[currentPiece.pieceIndex][backToBack];
+
+    score += table[linesCleared];
 };

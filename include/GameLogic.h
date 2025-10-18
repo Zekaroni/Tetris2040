@@ -27,25 +27,53 @@ namespace GAME_CONSTANTS
 };
 
 namespace CLEAR_SCORINGS
-{ // NOTE: I do not care about sd or hd points... they are like so little
-    // Standard Clears
-    constexpr uint16_t SINGLE_LINE = 100;
-    constexpr uint16_t DOUBLE_LINE = 300;
-    constexpr uint16_t TRIPLE_LINE = 500;
-    constexpr uint16_t TETRIS      = 800;
+{
+    constexpr uint16_t STANDARD[] = 
+    {
+        0,   // Zero placeholder
+        100, // Single
+        300, // Double
+        500, // Triple
+        800  // Tetris
+    };
 
-    // T-Spins Clears
-    constexpr uint16_t TSPIN_SINGLE = 800;
-    constexpr uint16_t TSPIN_DOUBLE = 1200;
-    constexpr uint16_t TSPIN_TRIPLE = 1600;
+    constexpr uint16_t TSPINS[] =
+    {
+        0,    // Zero placeholder
+        800,  // T-spin single
+        1200, // T-spin double
+        1600  // T-spin triple
+    };
 
-    // B2B Clears
-    constexpr uint16_t B2B_TETRIS       = 1200;
-    constexpr uint16_t B2B_TSPIN_SINGLE = 1200;
-    constexpr uint16_t B2B_TSPIN_DOUBLE = 1800;
-    constexpr uint16_t B2B_TSPIN_TRIPLE = 2400;
+    constexpr uint16_t STANDARD_B2B[] =
+    {
+        0,   // Zero placeholder
+        0,   // No clears utilize this
+        0,   // No clears utilize this
+        0,   // No clears utilize this
+        1200 // B2B Tetris
+    };
 
-    // NOTE: Do I want to add all spin scoring? I think that could be fun.
+    constexpr uint16_t TSPIN_B2B[] =
+    {
+        0,    // Zero placeholder
+        1200, // B2B T-spin single
+        1800, // B2B T-spin double
+        2400  // B2B T-spin triple
+    };
+
+    constexpr const uint16_t* SCORE_TABLE[][2] =
+    {
+        {STANDARD, STANDARD_B2B},
+        {STANDARD, STANDARD_B2B},
+        {TSPINS,   TSPIN_B2B},
+        {STANDARD, STANDARD_B2B},
+        {STANDARD, STANDARD_B2B},
+        {STANDARD, STANDARD_B2B},
+        {STANDARD, STANDARD_B2B},
+        {STANDARD, STANDARD_B2B},
+        {nullptr,  nullptr}
+    };
 };
 
 enum Direction{LEFT, RIGHT};
@@ -164,17 +192,19 @@ public:
     void softDrop();
     void hardDrop();
     
-    uint32_t getScore() const;
+    uint64_t getScore() const;
     uint8_t getLevel() const;
     
 private:
     PieceGenerator pieceRandomizer;
     Piece currentPiece;
-    uint32_t score;
+    uint64_t score;
     uint8_t level;  
     std::bitset<GAME_CONSTANTS::TILE_COUNT> playfield;
     TileAttributes tileData[GAME_CONSTANTS::TILE_COUNT];
     CurrentTime currentPieceTouchdownTime;
+    bool backToBack  = false;
+    bool specialSpin = false;
     
     void generateNewPiece();
     uint16_t getRow(uint8_t rowIndex);
