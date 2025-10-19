@@ -24,55 +24,9 @@ namespace GAME_CONSTANTS
     constexpr uint8_t TILE_COUNT        = BOARD_HEIGHT * BOARD_WIDTH;
     constexpr uint8_t FULL_LINE_MASK    = (1 << BOARD_WIDTH) - 1; // Favorite line so far
     const std::bitset<TILE_COUNT> FULL_BOARD_MASK = std::bitset<TILE_COUNT>().set();
-};
-
-namespace CLEAR_SCORINGS
-{
-    constexpr uint16_t STANDARD[] = 
-    {
-        0,   // Zero placeholder
-        100, // Single
-        300, // Double
-        500, // Triple
-        800  // Tetris
-    };
-
-    constexpr uint16_t TSPINS[] =
-    {
-        0,    // Zero placeholder
-        800,  // T-spin single
-        1200, // T-spin double
-        1600  // T-spin triple
-    };
-
-    constexpr uint16_t STANDARD_B2B[] =
-    {
-        0,   // Zero placeholder
-        0,   // No clears utilize this
-        0,   // No clears utilize this
-        0,   // No clears utilize this
-        1200 // B2B Tetris
-    };
-
-    constexpr uint16_t TSPIN_B2B[] =
-    {
-        0,    // Zero placeholder
-        1200, // B2B T-spin single
-        1800, // B2B T-spin double
-        2400  // B2B T-spin triple
-    };
-
-    constexpr const uint16_t* SCORE_TABLE[][2] =
-    {
-        {STANDARD, STANDARD_B2B},
-        {STANDARD, STANDARD_B2B},
-        {TSPINS,   TSPIN_B2B},
-        {STANDARD, STANDARD_B2B},
-        {STANDARD, STANDARD_B2B},
-        {STANDARD, STANDARD_B2B},
-        {STANDARD, STANDARD_B2B},
-        {STANDARD, STANDARD_B2B},
-        {nullptr,  nullptr}
+    constexpr uint16_t SCORE_LOOKUP_TABLE[16] = {
+        0, 100, 200, 500, 800, 800, 1200, 1600,
+        0, 100, 200, 500, 1200, 1200, 1800, 2400
     };
 };
 
@@ -85,15 +39,27 @@ struct PieceProperties
     const uint16_t rotations[GAME_CONSTANTS::ROTATION_COUNT];
 };
 
+union GameState
+{ // 1 byte
+    struct 
+    {
+        uint8_t unused:   5;
+        uint8_t backToBack: 1;
+        uint8_t isTSpin:    1;
+        uint8_t isCombo:   1;  
+    } bits;
+    uint8_t fullByte;
+};
+
 struct TileAttributes
-{ // 1 bytes total
+{ // 1 bytes
     uint8_t pieceIndex: 3; // 0-6 relates to a piece (if 7, no piece)
     uint8_t state:      4; // TBD what these four bits can be for
     uint8_t flashing:   1; // Something for line clears maybe?
 };
-
+    
 struct Piece
-{ // 2 bytes total
+{ // 2 bytes
     uint8_t position;          // Where the TOP-LEFT of the piece bitmask is
     uint8_t pieceIndex:     3; // Three bits for the piece index 0-7
     uint8_t rotation:       2; // Two bits for rotation: 0, 90, 180, 270
@@ -203,8 +169,7 @@ private:
     std::bitset<GAME_CONSTANTS::TILE_COUNT> playfield;
     TileAttributes tileData[GAME_CONSTANTS::TILE_COUNT];
     CurrentTime currentPieceTouchdownTime;
-    bool backToBack  = false;
-    bool specialSpin = false;
+    GameState gamestate;
     
     void generateNewPiece();
     uint16_t getRow(uint8_t rowIndex);

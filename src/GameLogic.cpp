@@ -12,7 +12,7 @@ PieceGenerator::PieceGenerator() : rng(std::random_device{}())
 uint8_t PieceGenerator::getNextPiece()
 {
     if (queue.size() < GAME_CONSTANTS::BAG_MIN_LIMIT)
-    { // Replenish the bag when down to (TO WHAT? :'())
+    { // Replenish the bag when down to (TO WHAT? :'( )
         fillQueue();
     }
     uint8_t next = queue.front();
@@ -46,6 +46,18 @@ GameLogic::GameLogic()
 
 void GameLogic::startNewGame()
 {
+    // Set all def values
+    currentPiece = Piece();
+    score = 0;
+    level = 0;
+    playfield.reset();
+    gamestate = GameState();
+
+    for (int i = 0; i < GAME_CONSTANTS::TILE_COUNT; ++i)
+    {
+        tileData[i] = TileAttributes();
+    }
+
     generateNewPiece();
 };
 
@@ -64,7 +76,7 @@ void GameLogic::movePiece(Direction dir)
  // NOTE: yeah, no I don't know what I was cooking, rip
  // NOTE: looked again and yeah idk, I feel like I was cooking but idk
  // NOTE: Still have no idea how I'd use the mod operator
-   
+
 };
 
 void GameLogic::rotatePiece(Rotation dir)
@@ -111,7 +123,7 @@ bool GameLogic::isValidPosition()
     const std::bitset<16>& pieceShape = GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation];
     
     uint8_t rowIndex    = currentPiece.position /  GAME_CONSTANTS::BOARD_WIDTH;
-    uint8_t columnIndex = currentPiece.position - rowIndex * GAME_CONSTANTS::BOARD_WIDTH; // Saves cpu instructions for extra division
+    uint8_t columnIndex = currentPiece.position - (rowIndex * GAME_CONSTANTS::BOARD_WIDTH); // Saves cpu instructions for extra division
     
     // Decided to add quick check for columns instead of running it in the loop for efficency
     if (
@@ -192,10 +204,7 @@ bool GameLogic::checkAndClearLines()
 };
 
 void GameLogic::updateScore(uint8_t linesCleared)
-{ // TODO: Decide if piece needs passed or just uses currentPiece
-    // NOTE: Implement combos into the score?
-    const uint16_t* table =
-    CLEAR_SCORINGS::SCORE_TABLE[currentPiece.pieceIndex][backToBack];
-
-    score += table[linesCleared];
+{
+    uint8_t index = linesCleared + (gamestate.fullByte & 110); // TODO: Fix
+    score += GAME_CONSTANTS::SCORE_LOOKUP_TABLE[linesCleared];
 };
