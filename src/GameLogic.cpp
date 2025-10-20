@@ -71,27 +71,66 @@ bool GameLogic::isGameOver()
     return false;
 };
 
-void GameLogic::movePiece(Direction dir)
+bool GameLogic::movePiece(Direction dir)
 {// NOTE: I just realised that for the movemnet I can use the mod operator. You'll know
  // NOTE: yeah, no I don't know what I was cooking, rip
  // NOTE: looked again and yeah idk, I feel like I was cooking but idk
  // NOTE: Still have no idea how I'd use the mod operator
+    if (dir && (currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH < 9))
+    {
+        currentPiece.position += 1;
+        return true;
+    } else if (currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH > 0)
+    {
+        currentPiece.position -= 1;
+        return true;
+    }
+    return false;
+};
+
+void GameLogic::DASRight()
+{ // NOTE: DAS right and left have to take into account the fact pieces could be alraedy placed
+    currentPiece.position++;
+    while (isValidPosition())
+    {
+        currentPiece.position++;
+    }
+    currentPiece.position--;
+};
+
+void GameLogic::DASLeft()
+{
+    currentPiece.position--;
+    while (isValidPosition())
+    {
+        currentPiece.position--;
+    }  
+    currentPiece.position++;
 
 };
 
 void GameLogic::rotatePiece(Rotation dir)
 {
-
+    currentPiece.rotation = currentPiece.rotation + 1 % GAME_CONSTANTS::ROTATION_COUNT;
 };
 
 void GameLogic::softDrop()
 {
-
+    currentPiece.position += GAME_CONSTANTS::BOARD_WIDTH;
+    if (!isValidPosition())
+    {
+        currentPiece.position -= GAME_CONSTANTS::BOARD_WIDTH;
+    };
 };
 
 void GameLogic::hardDrop()
 {
-
+    currentPiece.position += GAME_CONSTANTS::BOARD_WIDTH;
+    while (isValidPosition())
+    {
+        currentPiece.position += GAME_CONSTANTS::BOARD_WIDTH;
+    };
+    currentPiece.position -+ GAME_CONSTANTS::BOARD_WIDTH;
 };
 
 uint64_t GameLogic::getScore() const
@@ -205,6 +244,6 @@ bool GameLogic::checkAndClearLines()
 
 void GameLogic::updateScore(uint8_t linesCleared)
 {
-    uint8_t index = linesCleared + (gamestate.fullByte & 110); // TODO: Fix
+    uint8_t index = linesCleared + (gamestate.fullByte & 1100); // TODO: Fix
     score += GAME_CONSTANTS::SCORE_LOOKUP_TABLE[linesCleared];
 };

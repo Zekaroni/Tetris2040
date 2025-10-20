@@ -43,10 +43,11 @@ union GameState
 { // 1 byte
     struct 
     {
-        uint8_t unused:   5;
+        uint8_t unused:     4;
         uint8_t backToBack: 1;
         uint8_t isTSpin:    1;
-        uint8_t isCombo:   1;  
+        uint8_t isCombo:    1;  
+        uint8_t unused2:    1;
     } bits;
     uint8_t fullByte;
 };
@@ -153,7 +154,10 @@ public:
     void update();       // Move the game forward one "tick"
     bool isGameOver();   // Checking for game loss
     
-    void movePiece(Direction dir);
+    bool movePiece(Direction dir);
+    void DASRight();
+    void DASLeft();
+
     void rotatePiece(Rotation dir);
     void softDrop();
     void hardDrop();
