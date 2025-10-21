@@ -5,10 +5,7 @@ int main()
 {
     std::cout << std::boolalpha;
     GameLogic game;
-    game.printBoard();
-    game.movePiece(RIGHT);
-    game.printBoard();
-    game.movePiece(LEFT);
+    game.rotatePiece(CLOCKWISE);
     game.printBoard();
     game.DASLeft();
     game.printBoard();

@@ -17,7 +17,7 @@ namespace GAME_CONSTANTS
     constexpr uint8_t PIECE_SIZE        = 4; // x * x bounding box
     constexpr uint8_t BOARD_WIDTH       = 10;
     constexpr uint8_t BOARD_HEIGHT      = 20;
-    constexpr uint8_t STARTING_POSITION = 4;
+    constexpr uint8_t STARTING_POSITION = 14;
     constexpr uint8_t STARTING_ROTATION = 0;
     constexpr uint8_t BAG_MIN_LIMIT     = 14;
     constexpr uint8_t STARTING_GRAVITY  = 1;
@@ -31,7 +31,7 @@ namespace GAME_CONSTANTS
 };
 
 enum Direction{LEFT, RIGHT};
-enum Rotation{CLOCKWISE, COUNTER_CLOCKWISE, HALF_SPIN /*180*/};
+enum Rotation{CLOCKWISE = 1, COUNTER_CLOCKWISE = -1, HALF_SPIN = 2 /*180*/};
 enum PieceIndex{I,O,T,S,Z,J,L,NULL_PIECE}; // This is piece -> index order
 
 struct PieceProperties

@@ -121,7 +121,7 @@ void GameLogic::DASLeft()
 
 void GameLogic::rotatePiece(Rotation dir)
 {
-    currentPiece.rotation = currentPiece.rotation + 1 % GAME_CONSTANTS::ROTATION_COUNT;
+    currentPiece.rotation = currentPiece.rotation + dir % GAME_CONSTANTS::ROTATION_COUNT;
 };
 
 void GameLogic::softDrop()
@@ -171,18 +171,18 @@ bool GameLogic::isValidPosition()
 {
     const std::bitset<16> pieceShape(GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
     
-    int16_t baseRow    = currentPiece.position /  GAME_CONSTANTS::BOARD_WIDTH;
-    int16_t baseCol    = currentPiece.position %  GAME_CONSTANTS::BOARD_WIDTH;
+    uint8_t baseRow    = currentPiece.position /  GAME_CONSTANTS::BOARD_WIDTH;
+    uint8_t baseCol    = currentPiece.position %  GAME_CONSTANTS::BOARD_WIDTH;
     
     for (uint8_t row = 0; row < GAME_CONSTANTS::PIECE_SIZE; ++row)
     {
         for (uint8_t col = 0; col < GAME_CONSTANTS::PIECE_SIZE; ++col)
         {
-            int pieceBitIndex = 15 - (row * GAME_CONSTANTS::PIECE_SIZE + col);
+            uint8_t pieceBitIndex = 15 - (row * GAME_CONSTANTS::PIECE_SIZE + col);
             if (pieceShape[pieceBitIndex]) 
             {
-                int16_t targetCol = baseCol + col;
-                int16_t targetRow = baseRow + row;
+                uint8_t targetCol = baseCol + col;
+                uint8_t targetRow = baseRow + row;
                 if (targetCol < 0) return false;
                 if (targetCol >= GAME_CONSTANTS::BOARD_WIDTH) return false;
                 if (targetRow >= GAME_CONSTANTS::BOARD_HEIGHT) return false;
@@ -285,4 +285,4 @@ void GameLogic::printBoard() const
         std::cout << std::endl;
     }
     std::cout << std::endl;
-}
+};
