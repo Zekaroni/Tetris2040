@@ -30,7 +30,7 @@ namespace GAME_CONSTANTS
     };
 };
 
-enum Direction{LEFT, RIGHT};
+enum Direction{LEFT, RIGHT, DOWN};
 enum Rotation{CLOCKWISE = 1, COUNTER_CLOCKWISE = -1, HALF_SPIN = 2 /*180*/};
 enum PieceIndex{I,O,T,S,Z,J,L,NULL_PIECE}; // This is piece -> index order
 
@@ -154,10 +154,9 @@ public:
     void update();       // Move the game forward one "tick"
     bool isGameOver();   // Checking for game loss
     
-    bool movePiece(Direction dir);
-    void DASRight();
-    void DASLeft();
-
+    bool movePieceIfValid(Direction dir);
+    void DAS(Direction dir);
+    
     void rotatePiece(Rotation dir);
     void softDrop();
     void hardDrop();
@@ -166,8 +165,8 @@ public:
     uint8_t getLevel() const;
     
     void printBoard() const;
-
-private:
+    
+    private:
     PieceGenerator pieceRandomizer;
     Piece currentPiece;
     uint64_t score;
@@ -178,10 +177,12 @@ private:
     GameState gamestate;
     
     void generateNewPiece();
+    bool movePiece(Direction dir);
+    bool revertPiece(Direction dir);
     void placePiece();
     uint16_t getRow(uint8_t rowIndex);
     void updateRows(uint8_t endRow, uint8_t rowCount);
-    bool isValidPosition();
+    bool isValidPosition(Direction dir);
     bool checkAndClearLines();
     void updateScore(uint8_t linesCleared);
     std::bitset<GAME_CONSTANTS::TILE_COUNT> getPlayfield() const;

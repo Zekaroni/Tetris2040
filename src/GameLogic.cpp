@@ -73,51 +73,53 @@ bool GameLogic::isGameOver()
     return false;
 };
 
-bool GameLogic::movePiece(Direction dir)
+bool GameLogic::movePieceIfValid(Direction dir)
 {// NOTE: I just realised that for the movemnet I can use the mod operator. You'll know
  // NOTE: yeah, no I don't know what I was cooking, rip
  // NOTE: looked again and yeah idk, I feel like I was cooking but idk
  // NOTE: Still have no idea how I'd use the mod operator
-    if (dir)
-    {
-        currentPiece.position++;
-        if (!isValidPosition())
-        {
-            currentPiece.position--;
-            return false;
-        }
-        return true;
-    } else
-    {
-        currentPiece.position--;
-        if (!isValidPosition())
-        {
-            currentPiece.position++;
-            return false;
-        }
-        return true;
-    }
+    return isValidPosition(dir);
 };
 
-void GameLogic::DASRight()
-{ // NOTE: DAS right and left have to take into account the fact pieces could be alraedy placed
-    currentPiece.position++;
-    while (isValidPosition())
-    {
-        currentPiece.position++;
-    }
-    currentPiece.position--;
-};
-
-void GameLogic::DASLeft()
+bool GameLogic::movePiece(Direction dir)
 {
-    currentPiece.position--;
-    while (isValidPosition())
+    switch (dir)
     {
-        currentPiece.position--;
-    }  
-    currentPiece.position++;
+        case RIGHT:
+            currentPiece.position++;
+            return true;
+        case LEFT:
+            currentPiece.position--;
+            return true;
+        case DOWN:
+            currentPiece.position += GAME_CONSTANTS::BOARD_WIDTH;
+            return true;
+        default:
+            return false;
+    };
+}
 
+bool GameLogic::revertPiece(Direction dir)
+{
+    switch (dir)
+    {
+        case RIGHT:
+            currentPiece.position--;
+            return true;
+        case LEFT:
+            currentPiece.position++;
+            return true;
+        case DOWN:
+            currentPiece.position -= GAME_CONSTANTS::BOARD_WIDTH;
+            return true;
+        default:
+            return false;
+    };
+}
+
+void GameLogic::DAS(Direction dir)
+{ // NOTE: DAS right and left have to take into account the fact pieces could be alraedy placed
+    while (isValidPosition(dir)){};
 };
 
 void GameLogic::rotatePiece(Rotation dir)
@@ -127,21 +129,12 @@ void GameLogic::rotatePiece(Rotation dir)
 
 void GameLogic::softDrop()
 {
-    currentPiece.position += GAME_CONSTANTS::BOARD_WIDTH;
-    if (!isValidPosition())
-    {
-        currentPiece.position -= GAME_CONSTANTS::BOARD_WIDTH;
-    };
+    isValidPosition(DOWN);
 };
 
 void GameLogic::hardDrop()
 {
-    currentPiece.position += GAME_CONSTANTS::BOARD_WIDTH;
-    while (isValidPosition())
-    {
-        currentPiece.position += GAME_CONSTANTS::BOARD_WIDTH;
-    };
-    currentPiece.position -= GAME_CONSTANTS::BOARD_WIDTH;
+    while(isValidPosition(DOWN)){};
 };
 
 void GameLogic::placePiece()
@@ -149,9 +142,9 @@ void GameLogic::placePiece()
     const std::bitset<16> pieceShape(GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
     int startingRow = currentPiece.position / GAME_CONSTANTS::BOARD_WIDTH;
     int startingCol = currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH;
-    for (int row = 0; row < (GAME_CONSTANTS::PIECE_SIZE - 1); row++)
+    for (int row = 0; row < (GAME_CONSTANTS::PIECE_SIZE); row++)
     {
-        for (int col = 0; col < (GAME_CONSTANTS::PIECE_SIZE - 1); col++)
+        for (int col = 0; col < (GAME_CONSTANTS::PIECE_SIZE); col++)
         {
             uint8_t pieceBitIndex = 15 - (row * GAME_CONSTANTS::PIECE_SIZE + col);
             if(pieceShape[pieceBitIndex])
@@ -186,8 +179,11 @@ uint16_t GameLogic::getRow(uint8_t rowIndex)
     return (playfield >> (rowIndex * GAME_CONSTANTS::BOARD_WIDTH)).to_ulong() & GAME_CONSTANTS::FULL_LINE_MASK;
 };
 
-bool GameLogic::isValidPosition()
+bool GameLogic::isValidPosition(Direction dir)
 {
+    // TODO: Basically add all of the moevement logic in here
+    movePiece(dir);
+
     const std::bitset<16> pieceShape(GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
     
     uint8_t baseRow    = currentPiece.position /  GAME_CONSTANTS::BOARD_WIDTH;
@@ -202,11 +198,19 @@ bool GameLogic::isValidPosition()
             {
                 uint8_t targetCol = baseCol + col;
                 uint8_t targetRow = baseRow + row;
-                if (targetCol < 0) return false;
-                if (targetCol >= GAME_CONSTANTS::BOARD_WIDTH) return false;
-                if (targetRow >= GAME_CONSTANTS::BOARD_HEIGHT) return false;
+                
                 int boardIndex = targetRow * GAME_CONSTANTS::BOARD_WIDTH + targetCol;
-                if (playfield[boardIndex]) return false;
+                
+                if ((targetCol < 0) ||
+                (targetCol >= GAME_CONSTANTS::BOARD_WIDTH) ||
+                (targetRow >= GAME_CONSTANTS::BOARD_HEIGHT) ||
+                (playfield[boardIndex])
+                )
+                {
+                    std::cout << "Row when collide: " << targetRow << std::endl;
+                    revertPiece(dir);
+                    return false;
+                } 
             }
         }
     }
