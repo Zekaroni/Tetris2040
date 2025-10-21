@@ -22,7 +22,7 @@ namespace GAME_CONSTANTS
     constexpr uint8_t BAG_MIN_LIMIT     = 14;
     constexpr uint8_t STARTING_GRAVITY  = 1;
     constexpr uint8_t TILE_COUNT        = BOARD_HEIGHT * BOARD_WIDTH;
-    constexpr uint8_t FULL_LINE_MASK    = (1 << BOARD_WIDTH) - 1; // Favorite line so far
+    constexpr uint16_t FULL_LINE_MASK    = (1 << BOARD_WIDTH) - 1; // Favorite line so far
     const std::bitset<TILE_COUNT> FULL_BOARD_MASK = std::bitset<TILE_COUNT>().set();
     constexpr uint16_t SCORE_LOOKUP_TABLE[16] = {
         0, 100, 200, 500, 800, 800, 1200, 1600,
@@ -165,6 +165,8 @@ public:
     uint64_t getScore() const;
     uint8_t getLevel() const;
     
+    void printBoard() const;
+
 private:
     PieceGenerator pieceRandomizer;
     Piece currentPiece;
@@ -181,6 +183,7 @@ private:
     bool isValidPosition();
     bool checkAndClearLines();
     void updateScore(uint8_t linesCleared);
+    std::bitset<GAME_CONSTANTS::TILE_COUNT> getPlayfield() const;
 };
 
 #endif

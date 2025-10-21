@@ -1,4 +1,5 @@
-#include "./include/GameLogic.h"
+#include "../include/GameLogic.h"
+#include <iostream>
 
 /*
 This code is for the queue generation to be used for the bag.
@@ -76,16 +77,25 @@ bool GameLogic::movePiece(Direction dir)
  // NOTE: yeah, no I don't know what I was cooking, rip
  // NOTE: looked again and yeah idk, I feel like I was cooking but idk
  // NOTE: Still have no idea how I'd use the mod operator
-    if (dir && (currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH < 9))
+    if (dir)
     {
-        currentPiece.position += 1;
+        currentPiece.position++;
+        if (!isValidPosition())
+        {
+            currentPiece.position--;
+            return false;
+        }
         return true;
-    } else if (currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH > 0)
+    } else
     {
-        currentPiece.position -= 1;
+        currentPiece.position--;
+        if (!isValidPosition())
+        {
+            currentPiece.position++;
+            return false;
+        }
         return true;
     }
-    return false;
 };
 
 void GameLogic::DASRight()
@@ -159,43 +169,31 @@ uint16_t GameLogic::getRow(uint8_t rowIndex)
 
 bool GameLogic::isValidPosition()
 {
-    const std::bitset<16>& pieceShape = GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation];
+    const std::bitset<16> pieceShape(GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
     
-    uint8_t rowIndex    = currentPiece.position /  GAME_CONSTANTS::BOARD_WIDTH;
-    uint8_t columnIndex = currentPiece.position - (rowIndex * GAME_CONSTANTS::BOARD_WIDTH); // Saves cpu instructions for extra division
+    int16_t baseRow    = currentPiece.position /  GAME_CONSTANTS::BOARD_WIDTH;
+    int16_t baseCol    = currentPiece.position %  GAME_CONSTANTS::BOARD_WIDTH;
     
-    // Decided to add quick check for columns instead of running it in the loop for efficency
-    if (
-        columnIndex + GAME_CONSTANTS::PIECE_SIZE > GAME_CONSTANTS::BOARD_WIDTH ||
-        rowIndex + GAME_CONSTANTS::PIECE_SIZE > GAME_CONSTANTS::BOARD_HEIGHT
-    ) // TODO: Work this out to be sure
-      // NOTE: I just thought about this and I don't think this works unfortunately
-      // like in the case of a t piece being at the bottom and its only 3x3
-      // but the bounding box checks 4x4 so technically it will be outside bounds.
-      // Maybe check that it is out of bounds AND is a 1.
-    {
-        return false;
-    }
-    
-    // TODO: Same issue here with pieces not being as big as their bouding box.
-    // Add checks for zeros
     for (uint8_t row = 0; row < GAME_CONSTANTS::PIECE_SIZE; ++row)
     {
-        for (uint8_t column = 0; column < GAME_CONSTANTS::PIECE_SIZE; ++column)
+        for (uint8_t col = 0; col < GAME_CONSTANTS::PIECE_SIZE; ++col)
         {
-            if (
-                pieceShape[row * GAME_CONSTANTS::PIECE_SIZE + column] &&
-                playfield[((row + rowIndex) * GAME_CONSTANTS::BOARD_WIDTH) + (column + columnIndex)]
-            )
+            int pieceBitIndex = 15 - (row * GAME_CONSTANTS::PIECE_SIZE + col);
+            if (pieceShape[pieceBitIndex]) 
             {
-                return false;
+                int16_t targetCol = baseCol + col;
+                int16_t targetRow = baseRow + row;
+                if (targetCol < 0) return false;
+                if (targetCol >= GAME_CONSTANTS::BOARD_WIDTH) return false;
+                if (targetRow >= GAME_CONSTANTS::BOARD_HEIGHT) return false;
+                int boardIndex = targetRow * GAME_CONSTANTS::BOARD_WIDTH + targetCol;
+                if (playfield[boardIndex]) return false;
             }
         }
     }
     
-    return true;
+    return true; 
 };
-
 void GameLogic::updateRows(uint8_t startRow, uint8_t rowCount)
 {
     std::bitset<GAME_CONSTANTS::TILE_COUNT> upperMask = playfield >>
@@ -247,3 +245,44 @@ void GameLogic::updateScore(uint8_t linesCleared)
     uint8_t index = linesCleared + (gamestate.fullByte & 1100); // TODO: Fix
     score += GAME_CONSTANTS::SCORE_LOOKUP_TABLE[linesCleared];
 };
+
+std::bitset<GAME_CONSTANTS::TILE_COUNT> GameLogic::getPlayfield() const
+{
+    return playfield;
+};
+
+void GameLogic::printBoard() const
+{ // WARNING: Remove before "real" compiles
+    std::bitset<GAME_CONSTANTS::TILE_COUNT> tempBoard = playfield;
+    const std::bitset<16> pieceShape(GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
+    
+    uint8_t rowIndex    = currentPiece.position /  GAME_CONSTANTS::BOARD_WIDTH;
+    uint8_t columnIndex = currentPiece.position - (rowIndex * GAME_CONSTANTS::BOARD_WIDTH);
+
+    for (uint8_t row = 0; row < GAME_CONSTANTS::PIECE_SIZE; ++row)
+    {
+        for (uint8_t column = 0; column < GAME_CONSTANTS::PIECE_SIZE; ++column)
+        {
+            int pieceBitIndex = 15 - (row * GAME_CONSTANTS::PIECE_SIZE + column);
+            if (pieceShape[pieceBitIndex])
+            {
+                uint16_t boardIndex = ((row + rowIndex) * GAME_CONSTANTS::BOARD_WIDTH) + (column + columnIndex);
+                if (boardIndex < GAME_CONSTANTS::TILE_COUNT)
+                {
+                    tempBoard.set(boardIndex);
+                }
+            }
+        }
+    }
+
+    for (int r = 0; r < GAME_CONSTANTS::BOARD_HEIGHT; ++r)
+    {
+        for (int c = 0; c < GAME_CONSTANTS::BOARD_WIDTH; ++c)
+        {
+            int index = r * GAME_CONSTANTS::BOARD_WIDTH + c;
+            std::cout << (tempBoard[index] ? "#" : ".");
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+}
