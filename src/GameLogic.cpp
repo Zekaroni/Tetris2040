@@ -5,7 +5,7 @@
 This code is for the queue generation to be used for the bag.
 NOTE: May add different bag generation methods in the future
 */
-PieceGenerator::PieceGenerator() : rng(std::random_device{}())
+PieceGenerator::PieceGenerator() : rng(std::chrono::system_clock::now().time_since_epoch().count())
 {
     fillQueue();
 };
@@ -64,7 +64,8 @@ void GameLogic::startNewGame()
 
 void GameLogic::update()
 {
-
+    placePiece();
+    generateNewPiece();
 };
 
 bool GameLogic::isGameOver()
@@ -140,7 +141,25 @@ void GameLogic::hardDrop()
     {
         currentPiece.position += GAME_CONSTANTS::BOARD_WIDTH;
     };
-    currentPiece.position -+ GAME_CONSTANTS::BOARD_WIDTH;
+    currentPiece.position -= GAME_CONSTANTS::BOARD_WIDTH;
+};
+
+void GameLogic::placePiece()
+{
+    const std::bitset<16> pieceShape(GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
+    int startingRow = currentPiece.position / GAME_CONSTANTS::BOARD_WIDTH;
+    int startingCol = currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH;
+    for (int row = 0; row < (GAME_CONSTANTS::PIECE_SIZE - 1); row++)
+    {
+        for (int col = 0; col < (GAME_CONSTANTS::PIECE_SIZE - 1); col++)
+        {
+            uint8_t pieceBitIndex = 15 - (row * GAME_CONSTANTS::PIECE_SIZE + col);
+            if(pieceShape[pieceBitIndex])
+            {
+                playfield[((startingRow+row) * GAME_CONSTANTS::BOARD_WIDTH) + (startingCol + col)] = 1;
+            }
+        }
+    }
 };
 
 uint64_t GameLogic::getScore() const
@@ -194,6 +213,7 @@ bool GameLogic::isValidPosition()
     
     return true; 
 };
+
 void GameLogic::updateRows(uint8_t startRow, uint8_t rowCount)
 {
     std::bitset<GAME_CONSTANTS::TILE_COUNT> upperMask = playfield >>
