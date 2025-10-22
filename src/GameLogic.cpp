@@ -97,7 +97,7 @@ bool GameLogic::movePiece(Direction dir)
         default:
             return false;
     };
-}
+};
 
 bool GameLogic::revertPiece(Direction dir)
 {
@@ -115,7 +115,7 @@ bool GameLogic::revertPiece(Direction dir)
         default:
             return false;
     };
-}
+};
 
 void GameLogic::DAS(Direction dir)
 { // NOTE: DAS right and left have to take into account the fact pieces could be alraedy placed
@@ -125,6 +125,7 @@ void GameLogic::DAS(Direction dir)
 void GameLogic::rotatePiece(Rotation dir)
 {
     currentPiece.rotation = currentPiece.rotation + dir % GAME_CONSTANTS::ROTATION_COUNT;
+    // TODO: Add check for rotation
 };
 
 void GameLogic::softDrop()
@@ -134,7 +135,11 @@ void GameLogic::softDrop()
 
 void GameLogic::hardDrop()
 {
-    while(isValidPosition(DOWN)){};
+    int count = 0;
+    while(isValidPosition(DOWN)){count++;};
+    
+    std::cout << "Moved piece down " << count << " times\n";
+    // placePiece();
 };
 
 void GameLogic::placePiece()
@@ -182,19 +187,13 @@ uint16_t GameLogic::getRow(uint8_t rowIndex)
 bool GameLogic::isValidPosition(Direction dir)
 {
     movePiece(dir);
-
     const std::bitset<16> pieceShape(GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
-    
     uint8_t baseRow    = currentPiece.position /  GAME_CONSTANTS::BOARD_WIDTH;
     uint8_t baseCol    = currentPiece.position %  GAME_CONSTANTS::BOARD_WIDTH;
     
-    // std::cout
-    // << "Base column: "         << (int)baseCol << std::endl
-    // << "Base row: "            << (int)baseRow << std::endl;
-    
     // If moving left and the mask is on the wall, it moves the piece to the right
     // if there is no piece there currently
-    if (baseCol == 0 && !dir)
+    if (baseCol == 0 && (dir == LEFT))
     {
         std::cout << "Running first column check" << std::endl;
         for (uint8_t row = 0; row < GAME_CONSTANTS::PIECE_SIZE; row++)
@@ -203,12 +202,20 @@ bool GameLogic::isValidPosition(Direction dir)
                (playfield[currentPiece.position + (row * GAME_CONSTANTS::BOARD_WIDTH)] && pieceShape[row * GAME_CONSTANTS::PIECE_SIZE + 1])
             ) // TODO: Test this part. I think it is correct, but have not tested it.
             {
+                revertPiece(dir);
                 return false;
             }
         }
         currentPiece.position--;
         return true;
     };
+
+    // uint8_t colOffset = 0;
+    // if (baseCol > 5)
+    // {
+    //     baseCol = GAME_CONSTANTS::BOARD_WIDTH - baseCol;
+    //     baseRow += 1;
+    // }
     
     for (uint8_t row = 0; row < GAME_CONSTANTS::PIECE_SIZE; ++row)
     {
