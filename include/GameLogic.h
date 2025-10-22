@@ -17,7 +17,7 @@ namespace GAME_CONSTANTS
     constexpr uint8_t PIECE_SIZE        = 4; // x * x bounding box
     constexpr uint8_t BOARD_WIDTH       = 10;
     constexpr uint8_t BOARD_HEIGHT      = 20;
-    constexpr uint8_t STARTING_POSITION = 4;
+    constexpr uint8_t STARTING_POSITION = 14;
     constexpr uint8_t STARTING_ROTATION = 0;
     constexpr uint8_t BAG_MIN_LIMIT     = 14;
     constexpr uint8_t STARTING_GRAVITY  = 1;

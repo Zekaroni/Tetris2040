@@ -181,13 +181,34 @@ uint16_t GameLogic::getRow(uint8_t rowIndex)
 
 bool GameLogic::isValidPosition(Direction dir)
 {
-    // TODO: Basically add all of the moevement logic in here
     movePiece(dir);
 
     const std::bitset<16> pieceShape(GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
     
     uint8_t baseRow    = currentPiece.position /  GAME_CONSTANTS::BOARD_WIDTH;
     uint8_t baseCol    = currentPiece.position %  GAME_CONSTANTS::BOARD_WIDTH;
+    
+    // std::cout
+    // << "Base column: "         << (int)baseCol << std::endl
+    // << "Base row: "            << (int)baseRow << std::endl;
+    
+    // If moving left and the mask is on the wall, it moves the piece to the right
+    // if there is no piece there currently
+    if (baseCol == 0 && !dir)
+    {
+        std::cout << "Running first column check" << std::endl;
+        for (uint8_t row = 0; row < GAME_CONSTANTS::PIECE_SIZE; row++)
+        {
+            if (pieceShape[row * GAME_CONSTANTS::PIECE_SIZE] ||
+               (playfield[currentPiece.position + (row * GAME_CONSTANTS::BOARD_WIDTH)] && pieceShape[row * GAME_CONSTANTS::PIECE_SIZE + 1])
+            ) // TODO: Test this part. I think it is correct, but have not tested it.
+            {
+                return false;
+            }
+        }
+        currentPiece.position--;
+        return true;
+    };
     
     for (uint8_t row = 0; row < GAME_CONSTANTS::PIECE_SIZE; ++row)
     {
@@ -201,13 +222,16 @@ bool GameLogic::isValidPosition(Direction dir)
                 
                 int boardIndex = targetRow * GAME_CONSTANTS::BOARD_WIDTH + targetCol;
                 
-                if ((targetCol < 0) ||
-                (targetCol >= GAME_CONSTANTS::BOARD_WIDTH) ||
-                (targetRow >= GAME_CONSTANTS::BOARD_HEIGHT) ||
-                (playfield[boardIndex])
+                if (
+                    (targetCol >= GAME_CONSTANTS::BOARD_WIDTH) ||
+                    (targetRow >= GAME_CONSTANTS::BOARD_HEIGHT) ||
+                    (playfield[boardIndex])
                 )
                 {
-                    std::cout << "Row when collide: " << targetRow << std::endl;
+                    std::cout
+                    << "Column when collide: " << (int)targetCol << std::endl
+                    << "Row when collide: "    << (int)targetRow << std::endl
+                    << std::endl;
                     revertPiece(dir);
                     return false;
                 } 
