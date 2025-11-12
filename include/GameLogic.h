@@ -10,68 +10,41 @@
 
 using CurrentTime = std::chrono::steady_clock::time_point; // Alias for better readability
 
+enum Direction{LEFT, RIGHT, DOWN};
+enum Rotation{CLOCKWISE = 1, COUNTER_CLOCKWISE = -1, HALF_SPIN = 2 /*180*/};
+enum PieceIndex{I,O,T,S,Z,J,L,NULL_PIECE}; // This is piece -> index order
+
+
 namespace GAME_CONSTANTS
 {
-    constexpr uint8_t PIECE_COUNT       = 7;
-    constexpr uint8_t ROTATION_COUNT    = 4;
-    constexpr uint8_t PIECE_SIZE        = 4; // x * x bounding box
-    constexpr uint8_t BOARD_WIDTH       = 10;
-    constexpr uint8_t BOARD_HEIGHT      = 20;
-    constexpr uint8_t STARTING_POSITION = 14;
-    constexpr uint8_t STARTING_ROTATION = 0;
-    constexpr uint8_t BAG_MIN_LIMIT     = 14;
-    constexpr uint8_t STARTING_GRAVITY  = 1;
+    constexpr uint8_t PIECE_COUNT       = 7;  // I, O, T, S, Z, J, L
+    constexpr uint8_t ROTATION_COUNT    = 4;  // 0, 90, 180, 270
+    constexpr uint8_t PIECE_SIZE        = 4;  // x * x bounding box
+    constexpr uint8_t BOARD_WIDTH       = 10; // These would be fun to change later on, but current logic would break
+    constexpr uint8_t BOARD_HEIGHT      = 20; // ^^^
+    constexpr uint8_t STARTING_POSITION = 14; // Due to current wrapping issues, would like to FIX
+    constexpr uint8_t STARTING_ROTATION = 0;  // Starts with default rotation
+    constexpr uint8_t BAG_MIN_LIMIT     = 14; // Minimum amount of pieces in the bag queue
+    constexpr uint8_t STARTING_GRAVITY  = 1;  // Speed that the pieces fall, may change later
     constexpr uint8_t TILE_COUNT        = BOARD_HEIGHT * BOARD_WIDTH;
     constexpr uint16_t FULL_LINE_MASK    = (1 << BOARD_WIDTH) - 1; // Favorite line so far
     const std::bitset<TILE_COUNT> FULL_BOARD_MASK = std::bitset<TILE_COUNT>().set();
     constexpr uint16_t SCORE_LOOKUP_TABLE[16] = {
-        0, 100, 200, 500, 800, 800, 1200, 1600,
+        0, 100, 200, 500,  800,  800, 1200, 1600,
         0, 100, 200, 500, 1200, 1200, 1800, 2400
     };
 };
-
-enum Direction{LEFT, RIGHT, DOWN};
-enum Rotation{CLOCKWISE = 1, COUNTER_CLOCKWISE = -1, HALF_SPIN = 2 /*180*/};
-enum PieceIndex{I,O,T,S,Z,J,L,NULL_PIECE}; // This is piece -> index order
 
 struct PieceProperties
 { // color was removed and instead will be picked up by graphic engine with pience index
     const uint16_t rotations[GAME_CONSTANTS::ROTATION_COUNT];
 };
 
-union GameState
-{ // 1 byte
-    struct 
-    {
-        uint8_t unused:     4;
-        uint8_t backToBack: 1;
-        uint8_t isTSpin:    1;
-        uint8_t isCombo:    1;  
-        uint8_t unused2:    1;
-    } bits;
-    uint8_t fullByte;
-};
-
-struct TileAttributes
-{ // 1 bytes
-    uint8_t pieceIndex: 3; // 0-6 relates to a piece (if 7, no piece)
-    uint8_t state:      4; // TBD what these four bits can be for
-    uint8_t flashing:   1; // Something for line clears maybe?
-};
-    
-struct Piece
-{ // 2 bytes
-    uint8_t position;          // Where the TOP-LEFT of the piece bitmask is
-    uint8_t pieceIndex:     3; // Three bits for the piece index 0-7
-    uint8_t rotation:       2; // Two bits for rotation: 0, 90, 180, 270
-    uint8_t isTouchingDown: 1; // true if piece touched ground
-};
-
-namespace GameData
+namespace GAME_DATA
 {
     const PieceProperties PIECES[GAME_CONSTANTS::PIECE_COUNT] = 
-    {
-      { // I Piece
+    { // TODO: Reverse all of these
+        { // I Piece
             {
                 0b0000'1111'0000'0000,
                 0b0010'0010'0010'0010,
@@ -128,9 +101,41 @@ namespace GameData
             },
         }
     };
+    
+    constexpr uint8_t WRAP_MASKS[4] = { // ORDER MATTERS HERE
+        0b0000'0001, // Wrapped once to the right
+        0b0000'0011, // Wrapped twice to the right
+        0b0000'1100, // Wrapped twice to the left
+        0b0000'1000  // Wrapped once to the left
+    };
+};
 
-    // TODO: I will have to make masks for every possible T-Spin and other speical case
-    // for each piece
+union GameState
+{ // 1 byte
+    struct 
+    {
+        uint8_t unused:     3;
+        uint8_t backToBack: 1;
+        uint8_t isTSpin:    1;
+        uint8_t isCombo:    1;  
+        uint8_t unused2:    2;
+    } bits;
+    uint8_t fullByte;
+};
+
+struct TileAttributes
+{ // 1 bytes
+    uint8_t pieceIndex: 3; // 0-6 relates to a piece (if 7, no piece)
+    uint8_t state:      4; // TBD what these four bits can be for
+    uint8_t flashing:   1; // Something for line clears maybe?
+};
+    
+struct Piece
+{ // 2 bytes
+    uint8_t position;          // Where the TOP-LEFT of the piece bitmask is
+    uint8_t pieceIndex:     3; // Three bits for the piece index 0-7
+    uint8_t rotation:       2; // Two bits for rotation: 0, 90, 180, 270
+    uint8_t isTouchingDown: 1; // true if piece touched ground
 };
 
 class PieceGenerator {
@@ -154,7 +159,6 @@ public:
     void update();       // Move the game forward one "tick"
     bool isGameOver();   // Checking for game loss
     
-    bool movePieceIfValid(Direction dir);
     void DAS(Direction dir);
     
     void rotatePiece(Rotation dir);

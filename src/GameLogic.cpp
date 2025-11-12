@@ -73,30 +73,30 @@ bool GameLogic::isGameOver()
     return false;
 };
 
-bool GameLogic::movePieceIfValid(Direction dir)
-{// NOTE: I just realised that for the movemnet I can use the mod operator. You'll know
- // NOTE: yeah, no I don't know what I was cooking, rip
- // NOTE: looked again and yeah idk, I feel like I was cooking but idk
- // NOTE: Still have no idea how I'd use the mod operator
-    return isValidPosition(dir);
-};
-
 bool GameLogic::movePiece(Direction dir)
 {
     switch (dir)
     {
         case RIGHT:
             currentPiece.position++;
-            return true;
+            break;
         case LEFT:
             currentPiece.position--;
-            return true;
+            break;
         case DOWN:
             currentPiece.position += GAME_CONSTANTS::BOARD_WIDTH;
-            return true;
+            break;
         default:
             return false;
     };
+    
+    if (!isValidPosition(dir))
+    {
+        revertPiece(dir);
+        return false;
+    };
+
+    return true;
 };
 
 bool GameLogic::revertPiece(Direction dir)
@@ -118,8 +118,11 @@ bool GameLogic::revertPiece(Direction dir)
 };
 
 void GameLogic::DAS(Direction dir)
-{ // NOTE: DAS right and left have to take into account the fact pieces could be alraedy placed
-    while (isValidPosition(dir)){};
+{ 
+    while(movePiece(dir))
+    {
+        std::cout << (int)currentPiece.position << std::endl;
+    };
 };
 
 void GameLogic::rotatePiece(Rotation dir)
@@ -136,15 +139,15 @@ void GameLogic::softDrop()
 void GameLogic::hardDrop()
 {
     int count = 0;
-    while(isValidPosition(DOWN)){count++;};
+    while(movePiece(DOWN)){count++;};
     
     std::cout << "Moved piece down " << count << " times\n";
     // placePiece();
 };
 
 void GameLogic::placePiece()
-{
-    const std::bitset<16> pieceShape(GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
+{ // TODO: Make a new method for this functionality
+    const std::bitset<16> pieceShape(GAME_DATA::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
     int startingRow = currentPiece.position / GAME_CONSTANTS::BOARD_WIDTH;
     int startingCol = currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH;
     for (int row = 0; row < (GAME_CONSTANTS::PIECE_SIZE); row++)
@@ -186,67 +189,57 @@ uint16_t GameLogic::getRow(uint8_t rowIndex)
 
 bool GameLogic::isValidPosition(Direction dir)
 {
-    movePiece(dir);
-    const std::bitset<16> pieceShape(GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
-    uint8_t baseRow    = currentPiece.position /  GAME_CONSTANTS::BOARD_WIDTH;
-    uint8_t baseCol    = currentPiece.position %  GAME_CONSTANTS::BOARD_WIDTH;
-    
-    // If moving left and the mask is on the wall, it moves the piece to the right
-    // if there is no piece there currently
-    if (baseCol == 0 && (dir == LEFT))
-    {
-        std::cout << "Running first column check" << std::endl;
-        for (uint8_t row = 0; row < GAME_CONSTANTS::PIECE_SIZE; row++)
-        {
-            if (pieceShape[row * GAME_CONSTANTS::PIECE_SIZE] ||
-               (playfield[currentPiece.position + (row * GAME_CONSTANTS::BOARD_WIDTH)] && pieceShape[row * GAME_CONSTANTS::PIECE_SIZE + 1])
-            ) // TODO: Test this part. I think it is correct, but have not tested it.
-            {
-                revertPiece(dir);
-                return false;
-            }
-        }
-        currentPiece.position--;
-        return true;
-    };
-
-    // uint8_t colOffset = 0;
-    // if (baseCol > 5)
-    // {
-    //     baseCol = GAME_CONSTANTS::BOARD_WIDTH - baseCol;
-    //     baseRow += 1;
-    // }
-    
-    for (uint8_t row = 0; row < GAME_CONSTANTS::PIECE_SIZE; ++row)
-    {
-        for (uint8_t col = 0; col < GAME_CONSTANTS::PIECE_SIZE; ++col)
-        {
-            uint8_t pieceBitIndex = 15 - (row * GAME_CONSTANTS::PIECE_SIZE + col);
-            if (pieceShape[pieceBitIndex]) 
-            {
-                uint8_t targetCol = baseCol + col;
-                uint8_t targetRow = baseRow + row;
-                
-                int boardIndex = targetRow * GAME_CONSTANTS::BOARD_WIDTH + targetCol;
-                
-                if (
-                    (targetCol >= GAME_CONSTANTS::BOARD_WIDTH) ||
-                    (targetRow >= GAME_CONSTANTS::BOARD_HEIGHT) ||
-                    (playfield[boardIndex])
-                )
-                {
-                    std::cout
-                    << "Column when collide: " << (int)targetCol << std::endl
-                    << "Row when collide: "    << (int)targetRow << std::endl
-                    << std::endl;
-                    revertPiece(dir);
-                    return false;
-                } 
-            }
-        }
+    if (currentPiece.position > (GAME_CONSTANTS::BOARD_HEIGHT * GAME_CONSTANTS::BOARD_WIDTH))
+    { // Added for my sanity for now, may remove if redundant after fixes
+        std::cout << "The piece's position was greater than the baord size" << std::endl;
+        return false;
     }
     
-    return true; 
+    uint8_t  wrapMask       = 0b0000'0000;
+    uint16_t currentRowMask = 0b0000'0000'0000'0000;
+    uint16_t pieceMask      = GAME_DATA::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation];
+    uint16_t finalMask      = 0b0000'0000'0000'0000;
+    
+    uint8_t pieceRowIndex    = currentPiece.position / GAME_CONSTANTS::BOARD_WIDTH;
+    uint8_t pieceColumnIndex = currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH;
+    
+    
+    // Just pass the direction at this point, it will make it much better
+    if (pieceColumnIndex > 5) // Wrapped around the board
+    {
+        wrapMask = GAME_DATA::WRAP_MASKS[pieceColumnIndex - 6];
+    }
+
+    std::bitset<8>  a(wrapMask);
+    
+    for(int i = 0; i < GAME_CONSTANTS::PIECE_SIZE; i++)
+    {
+        currentRowMask =
+            (
+                getRow(pieceRowIndex+i)
+                >> (GAME_CONSTANTS::BOARD_WIDTH - pieceColumnIndex)
+            )
+            & 0b1111;
+        
+        pieceMask = pieceMask >> GAME_CONSTANTS::PIECE_SIZE; 
+        finalMask = pieceMask & currentRowMask;
+
+        std::bitset<16> b(currentRowMask);
+        std::bitset<16> c(pieceMask);
+        std::bitset<16> d(finalMask);
+        std::cout
+        << "Wrap Mask:   " << a << '\n' 
+        << "Current Row: " << b << '\n'
+        << "Piece Mask:  " << c << '\n'
+        << "Final Mask:  " << d << '\n'
+        << std::endl;
+        
+        if ((wrapMask & pieceMask) || finalMask)
+        {
+            return false;
+        }
+    }
+    return true;
 };
 
 void GameLogic::updateRows(uint8_t startRow, uint8_t rowCount)
@@ -306,10 +299,13 @@ std::bitset<GAME_CONSTANTS::TILE_COUNT> GameLogic::getPlayfield() const
     return playfield;
 };
 
+
+
+
 void GameLogic::printBoard() const
 { // WARNING: Remove before "real" compiles
     std::bitset<GAME_CONSTANTS::TILE_COUNT> tempBoard = playfield;
-    const std::bitset<16> pieceShape(GameData::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
+    const std::bitset<16> pieceShape(GAME_DATA::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
     
     uint8_t rowIndex    = currentPiece.position /  GAME_CONSTANTS::BOARD_WIDTH;
     uint8_t columnIndex = currentPiece.position - (rowIndex * GAME_CONSTANTS::BOARD_WIDTH);
