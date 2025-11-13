@@ -1,5 +1,4 @@
 #include "../include/GameLogic.h"
-#include <iostream>
 
 int main()
 {
@@ -12,11 +11,11 @@ int main()
     game.printBoard();
     game.hardDrop();
     game.printBoard();
-    game.update();
-    game.printBoard();
-    game.hardDrop();
-    game.printBoard();
-    game.DAS(LEFT);
-    game.printBoard();
+    // game.update();
+    // game.printBoard();
+    // game.hardDrop();
+    // game.printBoard();
+    // game.DAS(LEFT);
+    // game.printBoard();
     return 0;
 }

@@ -90,7 +90,7 @@ bool GameLogic::movePiece(Direction dir)
             return false;
     };
     
-    if (!isValidPosition(dir))
+    if (!isValidPosition())
     {
         revertPiece(dir);
         return false;
@@ -121,28 +121,36 @@ void GameLogic::DAS(Direction dir)
 { 
     while(movePiece(dir))
     {
-        std::cout << (int)currentPiece.position << std::endl;
+        // std::cout << (int)currentPiece.position << std::endl;
     };
 };
 
-void GameLogic::rotatePiece(Rotation dir)
+bool GameLogic::rotatePiece(Rotation dir)
 {
     currentPiece.rotation = currentPiece.rotation + dir % GAME_CONSTANTS::ROTATION_COUNT;
-    // TODO: Add check for rotation
+    if (!isValidPosition())
+    {
+        currentPiece.rotation = currentPiece.rotation - dir;
+    };
+    return true;
 };
 
-void GameLogic::softDrop()
+bool GameLogic::softDrop()
 {
-    isValidPosition(DOWN);
+    return movePiece(DOWN);
 };
 
-void GameLogic::hardDrop()
+bool GameLogic::hardDrop()
 {
     int count = 0;
     while(movePiece(DOWN)){count++;};
-    
-    std::cout << "Moved piece down " << count << " times\n";
-    // placePiece();
+    if (count)
+    {
+        placePiece();
+        // std::cout << "Moved piece down " << count << " times\n";
+        return true;
+    };
+    return false;
 };
 
 void GameLogic::placePiece()
@@ -154,7 +162,7 @@ void GameLogic::placePiece()
     {
         for (int col = 0; col < (GAME_CONSTANTS::PIECE_SIZE); col++)
         {
-            uint8_t pieceBitIndex = 15 - (row * GAME_CONSTANTS::PIECE_SIZE + col);
+            uint8_t pieceBitIndex = row * GAME_CONSTANTS::PIECE_SIZE + col;
             if(pieceShape[pieceBitIndex])
             {
                 playfield[((startingRow+row) * GAME_CONSTANTS::BOARD_WIDTH) + (startingCol + col)] = 1;
@@ -178,39 +186,49 @@ void GameLogic::generateNewPiece()
     currentPiece.pieceIndex = pieceRandomizer.getNextPiece();
     currentPiece.position = GAME_CONSTANTS::STARTING_POSITION;
     currentPiece.rotation = GAME_CONSTANTS::STARTING_ROTATION;
-    currentPiece.isTouchingDown = false;
-    // touchdown time shouldn't need changed because of isTouchingDown implementation
+    currentPiece.isTouchingDown = false; // touchdown time shouldn't need changed because of isTouchingDown implementation
 };
 
 uint16_t GameLogic::getRow(uint8_t rowIndex)
 {
-    return (playfield >> (rowIndex * GAME_CONSTANTS::BOARD_WIDTH)).to_ulong() & GAME_CONSTANTS::FULL_LINE_MASK;
+    uint16_t rowValue = 0;
+    int bitIndex = rowIndex * GAME_CONSTANTS::BOARD_WIDTH;
+    for (int i = 0; i < GAME_CONSTANTS::BOARD_WIDTH; i++)
+    {
+        if (playfield[bitIndex + i])
+        {
+            rowValue |= (1 << i);
+        }
+    }
+    return rowValue;
 };
 
-bool GameLogic::isValidPosition(Direction dir)
+bool GameLogic::isValidPosition()
 {
-    if (currentPiece.position > (GAME_CONSTANTS::BOARD_HEIGHT * GAME_CONSTANTS::BOARD_WIDTH))
-    { // Added for my sanity for now, may remove if redundant after fixes
-        std::cout << "The piece's position was greater than the baord size" << std::endl;
-        return false;
-    }
+    std::cout << "Current Position is: " << (int)currentPiece.position << std::endl; 
+
+    // if (currentPiece.position > (GAME_CONSTANTS::BOARD_HEIGHT * GAME_CONSTANTS::BOARD_WIDTH - GAME_CONSTANTS::PIECE_SIZE))
+    // { // Added for my sanity for now, may remove if redundant after fixes
+    //     std::cout << "The piece's position was greater than the baord size" << std::endl;
+    //     return false;
+    // }
     
     uint8_t  wrapMask       = 0b0000'0000;
     uint16_t currentRowMask = 0b0000'0000'0000'0000;
     uint16_t pieceMask      = GAME_DATA::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation];
-    uint16_t finalMask      = 0b0000'0000'0000'0000;
     
     uint8_t pieceRowIndex    = currentPiece.position / GAME_CONSTANTS::BOARD_WIDTH;
     uint8_t pieceColumnIndex = currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH;
     
-    
-    // Just pass the direction at this point, it will make it much better
+    if (pieceRowIndex > (GAME_CONSTANTS::BOARD_HEIGHT - GAME_CONSTANTS::PIECE_SIZE))
+    {
+        return false;
+    }
+
     if (pieceColumnIndex > 5) // Wrapped around the board
     {
         wrapMask = GAME_DATA::WRAP_MASKS[pieceColumnIndex - 6];
     }
-
-    std::bitset<8>  a(wrapMask);
     
     for(int i = 0; i < GAME_CONSTANTS::PIECE_SIZE; i++)
     {
@@ -221,20 +239,10 @@ bool GameLogic::isValidPosition(Direction dir)
             )
             & 0b1111;
         
-        pieceMask = pieceMask >> GAME_CONSTANTS::PIECE_SIZE; 
-        finalMask = pieceMask & currentRowMask;
-
-        std::bitset<16> b(currentRowMask);
-        std::bitset<16> c(pieceMask);
-        std::bitset<16> d(finalMask);
-        std::cout
-        << "Wrap Mask:   " << a << '\n' 
-        << "Current Row: " << b << '\n'
-        << "Piece Mask:  " << c << '\n'
-        << "Final Mask:  " << d << '\n'
-        << std::endl;
+        pieceMask >>= GAME_CONSTANTS::PIECE_SIZE; 
+        currentRowMask = pieceMask & currentRowMask;
         
-        if ((wrapMask & pieceMask) || finalMask)
+        if ((wrapMask & pieceMask) || currentRowMask)
         {
             return false;
         }

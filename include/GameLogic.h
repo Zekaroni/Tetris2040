@@ -114,11 +114,11 @@ union GameState
 { // 1 byte
     struct 
     {
-        uint8_t unused:     3;
-        uint8_t backToBack: 1;
-        uint8_t isTSpin:    1;
-        uint8_t isCombo:    1;  
-        uint8_t unused2:    2;
+        uint8_t unused:     4;
+        bool    isTSpin:    1;
+        bool    isCombo:    1;  
+        bool    isBTB:      1;
+        bool    isWrapping: 1;
     } bits;
     uint8_t fullByte;
 };
@@ -160,10 +160,9 @@ public:
     bool isGameOver();   // Checking for game loss
     
     void DAS(Direction dir);
-    
-    void rotatePiece(Rotation dir);
-    void softDrop();
-    void hardDrop();
+    bool rotatePiece(Rotation dir);
+    bool softDrop();
+    bool hardDrop();
     
     uint64_t getScore() const;
     uint8_t getLevel() const;
@@ -186,7 +185,7 @@ public:
     void placePiece();
     uint16_t getRow(uint8_t rowIndex);
     void updateRows(uint8_t endRow, uint8_t rowCount);
-    bool isValidPosition(Direction dir);
+    bool isValidPosition();
     bool checkAndClearLines();
     void updateScore(uint8_t linesCleared);
     std::bitset<GAME_CONSTANTS::TILE_COUNT> getPlayfield() const;
