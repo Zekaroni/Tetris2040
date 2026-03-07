@@ -1,6 +1,7 @@
 #include "../include/GameLogic.h"
 #include <iostream>
 
+
 /*
 This code is for the queue generation to be used for the bag.
 NOTE: May add different bag generation methods in the future
@@ -42,24 +43,34 @@ This is the code for the actual game logic itself
 */
 GameLogic::GameLogic()
 { // The object will start a new game when it is created
+    logFile.open("tetris_log.txt", std::ofstream::out | std::ofstream::trunc);
     startNewGame();
 };
 
 void GameLogic::startNewGame()
-{
-    // Set all def values
+{ // Set all def values
     currentPiece = Piece();
     score = 0;
     level = 0;
     playfield.reset();
     gamestate = GameState();
-
+    
     for (int i = 0; i < GAME_CONSTANTS::TILE_COUNT; ++i)
-    {
+    { // This creates a place in memory for other applications to access the board
         tileData[i] = TileAttributes();
     }
-
+    
     generateNewPiece();
+};
+
+uint64_t GameLogic::getScore() const // Returns the game score
+{ 
+    return score;
+};
+
+uint8_t GameLogic::getLevel() const // Returns the game level
+{
+    return level;
 };
 
 void GameLogic::update()
@@ -95,7 +106,7 @@ bool GameLogic::movePiece(Direction dir)
         revertPiece(dir);
         return false;
     };
-
+    logBoardState();
     return true;
 };
 
@@ -132,6 +143,7 @@ bool GameLogic::rotatePiece(Rotation dir)
     {
         currentPiece.rotation = currentPiece.rotation - dir;
     };
+    logBoardState();
     return true;
 };
 
@@ -143,10 +155,15 @@ bool GameLogic::softDrop()
 bool GameLogic::hardDrop()
 {
     int count = 0;
-    while(movePiece(DOWN)){count++;};
+    while(movePiece(DOWN))
+    {
+        count++;
+        logFile << "Piece was moved down " << count << " times" << std::endl;
+    };
     if (count)
     {
-        placePiece();
+        update();
+        // logFile << "Piece was moved down " << count << " times" << std::endl;
         // std::cout << "Moved piece down " << count << " times\n";
         return true;
     };
@@ -154,7 +171,7 @@ bool GameLogic::hardDrop()
 };
 
 void GameLogic::placePiece()
-{ // TODO: Make a new method for this functionality
+{
     const std::bitset<16> pieceShape(GAME_DATA::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
     int startingRow = currentPiece.position / GAME_CONSTANTS::BOARD_WIDTH;
     int startingCol = currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH;
@@ -162,24 +179,16 @@ void GameLogic::placePiece()
     {
         for (int col = 0; col < (GAME_CONSTANTS::PIECE_SIZE); col++)
         {
-            uint8_t pieceBitIndex = row * GAME_CONSTANTS::PIECE_SIZE + col;
+            uint8_t pieceBitIndex = 15 - (row * GAME_CONSTANTS::PIECE_SIZE + col);
             if(pieceShape[pieceBitIndex])
             {
                 playfield[((startingRow+row) * GAME_CONSTANTS::BOARD_WIDTH) + (startingCol + col)] = 1;
             }
         }
     }
+    logFile << "\nPiece has been placed" << std::endl;
 };
 
-uint64_t GameLogic::getScore() const
-{
-    return score;
-};
-
-uint8_t GameLogic::getLevel() const
-{
-    return level;
-};
 
 void GameLogic::generateNewPiece()
 {
@@ -204,15 +213,7 @@ uint16_t GameLogic::getRow(uint8_t rowIndex)
 };
 
 bool GameLogic::isValidPosition()
-{
-    std::cout << "Current Position is: " << (int)currentPiece.position << std::endl; 
-
-    // if (currentPiece.position > (GAME_CONSTANTS::BOARD_HEIGHT * GAME_CONSTANTS::BOARD_WIDTH - GAME_CONSTANTS::PIECE_SIZE))
-    // { // Added for my sanity for now, may remove if redundant after fixes
-    //     std::cout << "The piece's position was greater than the baord size" << std::endl;
-    //     return false;
-    // }
-    
+{   
     uint8_t  wrapMask       = 0b0000'0000;
     uint16_t currentRowMask = 0b0000'0000'0000'0000;
     uint16_t pieceMask      = GAME_DATA::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation];
@@ -220,11 +221,8 @@ bool GameLogic::isValidPosition()
     uint8_t pieceRowIndex    = currentPiece.position / GAME_CONSTANTS::BOARD_WIDTH;
     uint8_t pieceColumnIndex = currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH;
     
-    if (pieceRowIndex > (GAME_CONSTANTS::BOARD_HEIGHT - GAME_CONSTANTS::PIECE_SIZE))
-    {
-        return false;
-    }
-
+    uint8_t relativeRowIndex = 0;
+    
     if (pieceColumnIndex > 5) // Wrapped around the board
     {
         wrapMask = GAME_DATA::WRAP_MASKS[pieceColumnIndex - 6];
@@ -232,16 +230,22 @@ bool GameLogic::isValidPosition()
     
     for(int i = 0; i < GAME_CONSTANTS::PIECE_SIZE; i++)
     {
+        relativeRowIndex = pieceRowIndex + i;
         currentRowMask =
-            (
-                getRow(pieceRowIndex+i)
-                >> (GAME_CONSTANTS::BOARD_WIDTH - pieceColumnIndex)
-            )
-            & 0b1111;
+        (
+            getRow(relativeRowIndex)
+            >> (GAME_CONSTANTS::BOARD_WIDTH - pieceColumnIndex)
+        )
+        & 0b1111;
         
-        pieceMask >>= GAME_CONSTANTS::PIECE_SIZE; 
-        currentRowMask = pieceMask & currentRowMask;
+        pieceMask >>= GAME_CONSTANTS::PIECE_SIZE; // Shifts the mask to check the next row
+        currentRowMask &= pieceMask ;             // Checks if there are any tiles filled that overlap
         
+        logFile << "Row index: " << (int)relativeRowIndex << std::endl;
+        if (pieceMask && ((relativeRowIndex) >= GAME_CONSTANTS::BOARD_HEIGHT))
+        {
+            return false;
+        }
         if ((wrapMask & pieceMask) || currentRowMask)
         {
             return false;
@@ -307,22 +311,38 @@ std::bitset<GAME_CONSTANTS::TILE_COUNT> GameLogic::getPlayfield() const
     return playfield;
 };
 
-
-
-
 void GameLogic::printBoard() const
-{ // WARNING: Remove before "real" compiles
+{
+    for (int r = 0; r < GAME_CONSTANTS::BOARD_HEIGHT; ++r)
+    {
+        for (int c = 0; c < GAME_CONSTANTS::BOARD_WIDTH; ++c)
+        {
+            int index = r * GAME_CONSTANTS::BOARD_WIDTH + c;
+            std::cout << (playfield[index] ? "#" : ".");
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+};
+
+
+
+void GameLogic::logBoardState()
+{
+    if (!logFile.is_open()) {
+        return; // Don't do anything if the file isn't open
+    }
+
     std::bitset<GAME_CONSTANTS::TILE_COUNT> tempBoard = playfield;
     const std::bitset<16> pieceShape(GAME_DATA::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
-    
-    uint8_t rowIndex    = currentPiece.position /  GAME_CONSTANTS::BOARD_WIDTH;
-    uint8_t columnIndex = currentPiece.position - (rowIndex * GAME_CONSTANTS::BOARD_WIDTH);
+    uint8_t rowIndex = currentPiece.position / GAME_CONSTANTS::BOARD_WIDTH;
+    uint8_t columnIndex = currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH;
 
     for (uint8_t row = 0; row < GAME_CONSTANTS::PIECE_SIZE; ++row)
     {
         for (uint8_t column = 0; column < GAME_CONSTANTS::PIECE_SIZE; ++column)
         {
-            int pieceBitIndex = 15 - (row * GAME_CONSTANTS::PIECE_SIZE + column);
+            int pieceBitIndex = row * GAME_CONSTANTS::PIECE_SIZE + column;
             if (pieceShape[pieceBitIndex])
             {
                 uint16_t boardIndex = ((row + rowIndex) * GAME_CONSTANTS::BOARD_WIDTH) + (column + columnIndex);
@@ -334,14 +354,15 @@ void GameLogic::printBoard() const
         }
     }
 
+    // Write the board state to the file
     for (int r = 0; r < GAME_CONSTANTS::BOARD_HEIGHT; ++r)
     {
         for (int c = 0; c < GAME_CONSTANTS::BOARD_WIDTH; ++c)
         {
             int index = r * GAME_CONSTANTS::BOARD_WIDTH + c;
-            std::cout << (tempBoard[index] ? "#" : ".");
+            logFile << (tempBoard[index] ? "#" : ".");
         }
-        std::cout << std::endl;
+        logFile << " " << r << std::endl;
     }
-    std::cout << std::endl;
-};
+    logFile << "--------------------" << std::endl; // Separator for clarity
+}

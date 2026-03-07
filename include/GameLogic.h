@@ -8,6 +8,9 @@
 #include <algorithm>
 #include <chrono>
 
+#include <fstream> // DEBUG ONLY
+#include <string>
+
 using CurrentTime = std::chrono::steady_clock::time_point; // Alias for better readability
 
 enum Direction{LEFT, RIGHT, DOWN};
@@ -43,12 +46,12 @@ struct PieceProperties
 namespace GAME_DATA
 {
     const PieceProperties PIECES[GAME_CONSTANTS::PIECE_COUNT] = 
-    { // TODO: Reverse all of these
-        { // I Piece
-            {
-                0b0000'1111'0000'0000,
-                0b0010'0010'0010'0010,
+    {
+      { // I Piece
+            { // LSN Completed
                 0b0000'0000'1111'0000,
+                0b0010'0010'0010'0010,
+                0b0000'1111'0000'0000,
                 0b0100'0100'0100'0100
             },
         },
@@ -189,6 +192,11 @@ public:
     bool checkAndClearLines();
     void updateScore(uint8_t linesCleared);
     std::bitset<GAME_CONSTANTS::TILE_COUNT> getPlayfield() const;
+
+
+    // For DEBUG
+    std::ofstream logFile;
+    void logBoardState();
 };
 
 #endif

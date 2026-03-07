@@ -1,5 +1,4 @@
 .vscode
 build
-tests/__pycache__
 tests/test.exe
-random.txt
+tetris_log.txt
