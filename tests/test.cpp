@@ -6,5 +6,6 @@ int main()
     // game.rotatePiece(CLOCKWISE);
     // game.DAS(LEFT);
     game.hardDrop();
+    game.printBoard();
     return 0;
 }

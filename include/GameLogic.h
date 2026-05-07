@@ -2,7 +2,6 @@
 #define GAME_LOGIC_H
 
 #include <cstdint>
-#include <bitset>
 #include <deque>
 #include <random>
 #include <algorithm>
@@ -30,8 +29,6 @@ namespace GAME_CONSTANTS
     constexpr uint8_t BAG_MIN_LIMIT     = 14; // Minimum amount of pieces in the bag queue
     constexpr uint8_t STARTING_GRAVITY  = 1;  // Speed that the pieces fall, may change later
     constexpr uint8_t TILE_COUNT        = BOARD_HEIGHT * BOARD_WIDTH;
-    constexpr uint16_t FULL_LINE_MASK    = (1 << BOARD_WIDTH) - 1; // Favorite line so far
-    const std::bitset<TILE_COUNT> FULL_BOARD_MASK = std::bitset<TILE_COUNT>().set();
     constexpr uint16_t SCORE_LOOKUP_TABLE[16] = {
         0, 100, 200, 500,  800,  800, 1200, 1600,
         0, 100, 200, 500, 1200, 1200, 1800, 2400
@@ -135,7 +132,8 @@ struct TileAttributes
     
 struct Piece
 { // 2 bytes
-    uint8_t position;          // Where the TOP-LEFT of the piece bitmask is
+    uint8_t position_x;        // Where the TOP-LEFT of the piece bitmask is
+    uint8_t position_y;        // Where the TOP-LEFT of the piece bitmask is
     uint8_t pieceIndex:     3; // Three bits for the piece index 0-7
     uint8_t rotation:       2; // Two bits for rotation: 0, 90, 180, 270
     uint8_t isTouchingDown: 1; // true if piece touched ground
