@@ -1,3 +1,3 @@
 @echo off
-g++ -std=c++17 ./tests/test.cpp ./src/GameLogic.cpp -Iinclude -o ./tests/test
-"./tests/test"
+g++ main.cpp src/GameLogic.cpp src/GameController.cpp -o tetrimino.exe -lraylib -lopengl32 -lgdi32 -lwinmm
+./tetrimino.exe

@@ -1,4 +1,4 @@
 .vscode
 build
-tests/test.exe
+*.exe
 tetris_log.txt

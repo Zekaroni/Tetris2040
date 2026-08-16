@@ -1,368 +1,514 @@
 #include "../include/GameLogic.h"
-#include <iostream>
 
+#include "raylib.h"
+#include <cstring>
 
-/*
-This code is for the queue generation to be used for the bag.
-NOTE: May add different bag generation methods in the future
-*/
-PieceGenerator::PieceGenerator() : rng(std::chrono::system_clock::now().time_since_epoch().count())
-{
-    fillQueue();
-};
+PieceGenerator::PieceGenerator() : rng(std::random_device{}()) {
+    fillBag(0);
+    fillBag(7);
+}
 
-uint8_t PieceGenerator::getNextPiece()
-{
-    if (queue.size() < GAME_CONSTANTS::BAG_MIN_LIMIT)
-    { // Replenish the bag when down to (TO WHAT? :'( )
-        fillQueue();
+void PieceGenerator::fillBag(int offset) {
+    uint8_t bag[7] = {0, 1, 2, 3, 4, 5, 6};
+    std::shuffle(std::begin(bag), std::end(bag), rng);
+    for (int i = 0; i < 7; i++) {
+        queue[offset + i] = bag[i];
     }
-    uint8_t next = queue.front();
-    queue.pop_front();
-    return next;
-};
+}
 
-const std::deque<uint8_t>& PieceGenerator::getQueue() const
+uint8_t PieceGenerator::getNextPiece() {
+    uint8_t next = queue[queueIndex];
+    queueIndex++;
+
+    if (queueIndex >= 7) {
+        for (int i = 0; i < 7; i++) {
+            queue[i] = queue[i + 7];
+        }
+        fillBag(7);
+        queueIndex = 0;
+    }
+    return next;
+}
+
+void PieceGenerator::peekQueue(uint8_t* outPieces, int count) const {
+    if (count > 7) count = 7; 
+    
+    for (int i = 0; i < count; i++) {
+        outPieces[i] = queue[queueIndex + i];
+    }
+}
+
+const uint8_t* PieceGenerator::getQueue() const
 {
     return queue;
-};
+}
 
-void PieceGenerator::fillQueue()
-{
-    bag = {0, 1, 2, 3, 4, 5, 6};
-    std::shuffle(bag.begin(), bag.end(), rng);
-    for (const uint8_t& piece : bag)
-    {
-        queue.push_back(piece);
-    }
-};
-
-
-/*
-This is the code for the actual game logic itself
-*/
-GameLogic::GameLogic()
-{ // The object will start a new game when it is created
-    logFile.open("tetris_log.txt", std::ofstream::out | std::ofstream::trunc);
+GameLogic::GameLogic() {
     startNewGame();
-};
+}
+
+Piece GameLogic::getCurrentPiece() const
+{
+     return currentPiece; 
+}
+
+uint8_t GameLogic::getCell(int x, int y) const
+{ 
+    return board[y][x];
+}
+
+void GameLogic::getNextQueue(uint8_t* outPieces, int count) const {
+    pieceRandomizer.peekQueue(outPieces, count);
+}
+
+GameState GameLogic::getState() const
+{
+    return currentState;
+}
+
+int GameLogic::getLinesCleared() const
+{
+    return totalLinesCleared;
+}
+
+bool GameLogic::hasHeldPiece() const
+{
+    return !isHoldEmpty;
+}
+
+bool GameLogic::canHoldPiece() const
+{
+    return canHold;
+}
+
+uint8_t GameLogic::getHeldPieceIndex() const
+{
+    return heldPieceIndex;
+}
 
 void GameLogic::startNewGame()
-{ // Set all def values
-    currentPiece = Piece();
+{
+    std::memset(board, 0, sizeof(board));
     score = 0;
-    level = 0;
-    playfield.reset();
-    gamestate = GameState();
-    
-    for (int i = 0; i < GAME_CONSTANTS::TILE_COUNT; ++i)
-    { // This creates a place in memory for other applications to access the board
-        tileData[i] = TileAttributes();
+    level = 1;
+    isHoldEmpty = true;
+    totalLinesCleared = 0;
+    currentCombo = -1;
+
+    currentState = GameState::PRACTICE;
+
+    if (currentState == GameState::SPRINT)
+    {
+        sprintStartTime = std::chrono::steady_clock::now();
     }
-    
-    generateNewPiece();
-};
+    spawnNewPiece();
+}
 
-uint64_t GameLogic::getScore() const // Returns the game score
-{ 
-    return score;
-};
 
-uint8_t GameLogic::getLevel() const // Returns the game level
-{
-    return level;
-};
+void GameLogic::update() {
+    if (currentState == GameState::GAME_OVER) return;
 
-void GameLogic::update()
-{
-    placePiece();
-    generateNewPiece();
-};
-
-bool GameLogic::isGameOver()
-{
-    return false;
-};
-
-bool GameLogic::movePiece(Direction dir)
-{
-    switch (dir)
-    {
-        case RIGHT:
-            currentPiece.position++;
-            break;
-        case LEFT:
-            currentPiece.position--;
-            break;
-        case DOWN:
-            currentPiece.position += GAME_CONSTANTS::BOARD_WIDTH;
-            break;
-        default:
-            return false;
-    };
+    currentPiece.y += 1; 
     
     if (!isValidPosition())
     {
-        revertPiece(dir);
-        return false;
-    };
-    logBoardState();
-    return true;
-};
-
-bool GameLogic::revertPiece(Direction dir)
-{
-    switch (dir)
-    {
-        case RIGHT:
-            currentPiece.position--;
-            return true;
-        case LEFT:
-            currentPiece.position++;
-            return true;
-        case DOWN:
-            currentPiece.position -= GAME_CONSTANTS::BOARD_WIDTH;
-            return true;
-        default:
-            return false;
-    };
-};
-
-void GameLogic::DAS(Direction dir)
-{ 
-    while(movePiece(dir))
-    {
-        // std::cout << (int)currentPiece.position << std::endl;
-    };
-};
-
-bool GameLogic::rotatePiece(Rotation dir)
-{
-    currentPiece.rotation = currentPiece.rotation + dir % GAME_CONSTANTS::ROTATION_COUNT;
-    if (!isValidPosition())
-    {
-        currentPiece.rotation = currentPiece.rotation - dir;
-    };
-    logBoardState();
-    return true;
-};
-
-bool GameLogic::softDrop()
-{
-    return movePiece(DOWN);
-};
-
-bool GameLogic::hardDrop()
-{
-    int count = 0;
-    while(movePiece(DOWN))
-    {
-        count++;
-        logFile << "Piece was moved down " << count << " times" << std::endl;
-    };
-    if (count)
-    {
-        update();
-        // logFile << "Piece was moved down " << count << " times" << std::endl;
-        // std::cout << "Moved piece down " << count << " times\n";
-        return true;
-    };
-    return false;
-};
-
-void GameLogic::placePiece()
-{
-    const std::bitset<16> pieceShape(GAME_DATA::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
-    int startingRow = currentPiece.position / GAME_CONSTANTS::BOARD_WIDTH;
-    int startingCol = currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH;
-    for (int row = 0; row < (GAME_CONSTANTS::PIECE_SIZE); row++)
-    {
-        for (int col = 0; col < (GAME_CONSTANTS::PIECE_SIZE); col++)
+        currentPiece.y -= 1;
+        
+        if (!currentPiece.isTouchingDown)
         {
-            uint8_t pieceBitIndex = 15 - (row * GAME_CONSTANTS::PIECE_SIZE + col);
-            if(pieceShape[pieceBitIndex])
+            currentPiece.isTouchingDown = true;
+            currentPieceTouchdownTime = std::chrono::steady_clock::now();
+        }
+    } else
+    {
+        lastActionWasRotation = false;
+    }
+}
+
+bool GameLogic::isGameOver() {
+    // If a new piece spawns and immediately is invalid, game over
+    return !isValidPosition();
+}
+
+
+void GameLogic::spawnNewPiece() {
+    currentPiece.pieceIndex = pieceRandomizer.getNextPiece();
+    currentPiece.x = CONSTANTS::STARTING_POSITION;
+    currentPiece.y = 0;
+    currentPiece.rotation = CONSTANTS::STARTING_ROTATION;
+    currentPiece.isTouchingDown = false;
+    canHold = true;
+    lastActionWasRotation = false;
+    if (!isValidPosition()) startNewGame();
+}
+
+void GameLogic::hold() {
+    if (currentState == GameState::GAME_OVER) return;
+    if (!canHold) return;
+
+    if (isHoldEmpty) {
+        heldPieceIndex = currentPiece.pieceIndex;
+        isHoldEmpty = false;
+        spawnNewPiece();
+    } else {
+        uint8_t temp = currentPiece.pieceIndex;
+        currentPiece.pieceIndex = heldPieceIndex;
+        heldPieceIndex = temp;
+
+        // Reset the swapped piece to the top
+        currentPiece.x = CONSTANTS::STARTING_POSITION;
+        currentPiece.y = 0;
+        currentPiece.rotation = CONSTANTS::STARTING_ROTATION;
+    }
+    canHold = false;
+}
+
+void GameLogic::movePiece(Direction dir) {
+    if (currentState == GameState::GAME_OVER) return;
+
+    int8_t oldX = currentPiece.x;
+    
+    if (dir == Direction::LEFT) currentPiece.x -= 1;
+    else if (dir == Direction::RIGHT) currentPiece.x += 1;
+
+    if (!isValidPosition()) {
+        currentPiece.x = oldX; 
+    } else {
+        lastActionWasRotation = false;
+    }
+
+    if (currentPiece.isTouchingDown) {
+        currentPieceTouchdownTime = std::chrono::steady_clock::now();
+        currentPiece.y += 1;
+        if (isValidPosition()) {
+            currentPiece.isTouchingDown = false; 
+        }
+        currentPiece.y -= 1;
+    }
+}
+
+void GameLogic::checkLockDelay()
+{
+    if (currentPiece.isTouchingDown)
+    {
+        auto now = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - currentPieceTouchdownTime).count();
+        
+        if (duration >= lockDelayAmount)
+        { 
+            lockPiece();
+        } // FIX: Piece drops while "floating" if time is out
+    }
+}
+
+void GameLogic::rotatePiece(Rotation dir) {
+    if (currentState == GameState::GAME_OVER) return;
+    if (currentPiece.pieceIndex == static_cast<uint8_t>(PieceIndex::O)) return;
+
+    uint8_t oldRot = currentPiece.rotation;
+    int8_t oldX = currentPiece.x;
+    int8_t oldY = currentPiece.y;
+    
+    // 1. Apply the mathematical rotation
+    if (dir == Rotation::CLOCKWISE) {
+        currentPiece.rotation = (currentPiece.rotation + 1) % 4;
+    } else if (dir == Rotation::COUNTER_CLOCKWISE) {
+        currentPiece.rotation = (currentPiece.rotation + 3) % 4;
+    } else if (dir == Rotation::HALF_SPIN) {
+        currentPiece.rotation = (currentPiece.rotation + 2) % 4;
+        if (!isValidPosition()) 
+        {
+            currentPiece.rotation = oldRot;
+        } else
+        {
+            lastActionWasRotation = true;
+        }
+        return; 
+    }
+
+    uint8_t newRot = currentPiece.rotation;
+    if (isValidPosition()) 
+    {
+        lastActionWasRotation = true;
+        return;
+    }
+
+    int kickIndex = 0;
+    if      (oldRot == 0 && newRot == 1) kickIndex = 0;
+    else if (oldRot == 1 && newRot == 0) kickIndex = 1;
+    else if (oldRot == 1 && newRot == 2) kickIndex = 2;
+    else if (oldRot == 2 && newRot == 1) kickIndex = 3;
+    else if (oldRot == 2 && newRot == 3) kickIndex = 4;
+    else if (oldRot == 3 && newRot == 2) kickIndex = 5;
+    else if (oldRot == 3 && newRot == 0) kickIndex = 6;
+    else if (oldRot == 0 && newRot == 3) kickIndex = 7;
+
+    bool isIPiece = (currentPiece.pieceIndex == static_cast<uint8_t>(PieceIndex::I));
+
+    for (int i = 0; i < 4; i++) {
+        int8_t offsetX = isIPiece ? CONSTANTS::WALL_KICK_I[kickIndex][i].x : CONSTANTS::WALL_KICK_NORMAL[kickIndex][i].x;
+        int8_t offsetY = isIPiece ? CONSTANTS::WALL_KICK_I[kickIndex][i].y : CONSTANTS::WALL_KICK_NORMAL[kickIndex][i].y;
+
+        currentPiece.x = oldX + offsetX;
+        currentPiece.y = oldY + offsetY;
+
+        if (isValidPosition()) {
+            lastActionWasRotation = true;
+            return;
+        }
+    }
+
+    // All 5 tests failed. Revert to the original state.
+    currentPiece.x = oldX;
+    currentPiece.y = oldY;
+    currentPiece.rotation = oldRot;
+
+    if (currentPiece.isTouchingDown) {
+        currentPieceTouchdownTime = std::chrono::steady_clock::now();
+        currentPiece.y += 1;
+        if (isValidPosition()) {
+            currentPiece.isTouchingDown = false; 
+        }
+        currentPiece.y -= 1;
+    }
+}
+
+bool GameLogic::checkImmobility() {
+    bool trapped = true;
+
+    // Left
+    currentPiece.x -= 1;
+    if (isValidPosition()) trapped = false;
+    currentPiece.x += 1;
+
+    // Right
+    currentPiece.x += 1;
+    if (isValidPosition()) trapped = false;
+    currentPiece.x -= 1;
+
+    // Up
+    currentPiece.y -= 1;
+    if (isValidPosition()) trapped = false;
+    currentPiece.y += 1;
+
+    return trapped;
+}
+
+SpinType GameLogic::checkSpin() {
+    if (!lastActionWasRotation) return SpinType::NONE;
+
+    if (currentPiece.pieceIndex == static_cast<uint8_t>(PieceIndex::T))
+    {
+        int filledCorners = 0;
+        int corners[4][2] = {{0, 0}, {2, 0}, {0, 2}, {2, 2}};
+
+        for (int i = 0; i < 4; i++)
+        {
+            int cx = currentPiece.x + corners[i][0];
+            int cy = currentPiece.y + corners[i][1];
+            if (
+                cx < 0
+                || cx >= CONSTANTS::BOARD_WIDTH
+                || cy >= CONSTANTS::BOARD_HEIGHT
+                || (cy >= 0 && board[cy][cx] != 0)
+            )
             {
-                playfield[((startingRow+row) * GAME_CONSTANTS::BOARD_WIDTH) + (startingCol + col)] = 1;
+                filledCorners++;
+            }
+        }
+        if (filledCorners >= 3) return SpinType::T_SPIN;
+        return SpinType::NONE;
+    }
+
+    if (checkImmobility())
+    {
+        if (currentPiece.pieceIndex == static_cast<uint8_t>(PieceIndex::Z)) return SpinType::Z_SPIN;
+        if (currentPiece.pieceIndex == static_cast<uint8_t>(PieceIndex::S)) return SpinType::S_SPIN;
+        if (currentPiece.pieceIndex == static_cast<uint8_t>(PieceIndex::L)) return SpinType::L_SPIN;
+        if (currentPiece.pieceIndex == static_cast<uint8_t>(PieceIndex::J)) return SpinType::J_SPIN;
+        if (currentPiece.pieceIndex == static_cast<uint8_t>(PieceIndex::I)) return SpinType::I_SPIN;
+    }
+
+    return SpinType::NONE;
+}
+
+void GameLogic::lockPiece()
+{
+    lastSpin = checkSpin();
+    if (lastSpin != SpinType::NONE)
+    {
+        // TODO: Add logic to reward spins
+        TraceLog(LOG_INFO, "Special Spin Detected");
+    }
+
+    uint16_t shape = CONSTANTS::PIECES[currentPiece.pieceIndex][currentPiece.rotation];
+
+    for (int row = 0; row < 4; ++row)
+    {
+        for (int col = 0; col < 4; ++col)
+        {
+            if (shape & (1 << (15 - (row * 4 + col))))
+            {
+                board[currentPiece.y + row][currentPiece.x + col] = currentPiece.pieceIndex + 1; 
             }
         }
     }
-    logFile << "\nPiece has been placed" << std::endl;
-};
+    
+    checkAndClearLines();
+    spawnNewPiece();
+}
 
-
-void GameLogic::generateNewPiece()
+void GameLogic::hardDrop()
 {
-    currentPiece.pieceIndex = pieceRandomizer.getNextPiece();
-    currentPiece.position = GAME_CONSTANTS::STARTING_POSITION;
-    currentPiece.rotation = GAME_CONSTANTS::STARTING_ROTATION;
-    currentPiece.isTouchingDown = false; // touchdown time shouldn't need changed because of isTouchingDown implementation
-};
-
-uint16_t GameLogic::getRow(uint8_t rowIndex)
-{
-    uint16_t rowValue = 0;
-    int bitIndex = rowIndex * GAME_CONSTANTS::BOARD_WIDTH;
-    for (int i = 0; i < GAME_CONSTANTS::BOARD_WIDTH; i++)
+    if (currentState == GameState::GAME_OVER) return;
+    
+    int startY = currentPiece.y;
+    while (isValidPosition())
     {
-        if (playfield[bitIndex + i])
-        {
-            rowValue |= (1 << i);
-        }
+        currentPiece.y += 1;
     }
-    return rowValue;
-};
 
-bool GameLogic::isValidPosition()
-{   
-    uint8_t  wrapMask       = 0b0000'0000;
-    uint16_t currentRowMask = 0b0000'0000'0000'0000;
-    uint16_t pieceMask      = GAME_DATA::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation];
-    
-    uint8_t pieceRowIndex    = currentPiece.position / GAME_CONSTANTS::BOARD_WIDTH;
-    uint8_t pieceColumnIndex = currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH;
-    
-    uint8_t relativeRowIndex = 0;
-    
-    if (pieceColumnIndex > 5) // Wrapped around the board
+    currentPiece.y -= 1; 
+    if (currentPiece.y > startY)
     {
-        wrapMask = GAME_DATA::WRAP_MASKS[pieceColumnIndex - 6];
+        lastActionWasRotation = false; 
     }
     
-    for(int i = 0; i < GAME_CONSTANTS::PIECE_SIZE; i++)
+    lockPiece();
+}
+
+void GameLogic::softDrop()
+{
+    if (currentState == GameState::GAME_OVER) return;
+
+    currentPiece.y += 1;
+    
+    if (!isValidPosition())
     {
-        relativeRowIndex = pieceRowIndex + i;
-        currentRowMask =
-        (
-            getRow(relativeRowIndex)
-            >> (GAME_CONSTANTS::BOARD_WIDTH - pieceColumnIndex)
-        )
-        & 0b1111;
+        currentPiece.y -= 1;
         
-        pieceMask >>= GAME_CONSTANTS::PIECE_SIZE; // Shifts the mask to check the next row
-        currentRowMask &= pieceMask ;             // Checks if there are any tiles filled that overlap
-        
-        logFile << "Row index: " << (int)relativeRowIndex << std::endl;
-        if (pieceMask && ((relativeRowIndex) >= GAME_CONSTANTS::BOARD_HEIGHT))
+        if (!currentPiece.isTouchingDown)
         {
-            return false;
+            currentPiece.isTouchingDown = true;
+            currentPieceTouchdownTime = std::chrono::steady_clock::now();
         }
-        if ((wrapMask & pieceMask) || currentRowMask)
-        {
-            return false;
+    } else
+    {
+        lastActionWasRotation = false;
+        currentPiece.isTouchingDown = false; 
+    }
+}
+
+uint32_t GameLogic::getScore() const {
+    return score;
+}
+
+uint8_t GameLogic::getLevel() const {
+    return level;
+}
+
+bool GameLogic::isValidPosition() {
+    uint16_t shape = CONSTANTS::PIECES[currentPiece.pieceIndex][currentPiece.rotation];
+
+    for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            if (shape & (1 << (15 - (row * 4 + col)))) {
+                int boardX = currentPiece.x + col;
+                int boardY = currentPiece.y + row;
+
+                if (boardX < 0 || boardX >= CONSTANTS::BOARD_WIDTH || boardY >= CONSTANTS::BOARD_HEIGHT) return false;
+                if (boardY >= 0 && board[boardY][boardX] != 0) return false;
+            }
         }
     }
     return true;
-};
+}
 
-void GameLogic::updateRows(uint8_t startRow, uint8_t rowCount)
-{
-    std::bitset<GAME_CONSTANTS::TILE_COUNT> upperMask = playfield >>
-        ((GAME_CONSTANTS::BOARD_HEIGHT - startRow - 1) * GAME_CONSTANTS::BOARD_WIDTH);
+int8_t GameLogic::getGhostY() {
+    int8_t originalY = currentPiece.y;
     
-    std::bitset<GAME_CONSTANTS::TILE_COUNT> lowerMask = GAME_CONSTANTS::FULL_BOARD_MASK >>
-        ((startRow + rowCount) * GAME_CONSTANTS::BOARD_WIDTH); // (+ 1) ?
+    while (isValidPosition()) {
+        currentPiece.y += 1;
+    }
 
-    playfield = (
-        (playfield & lowerMask) |
-        (upperMask << 
-            ((GAME_CONSTANTS::BOARD_HEIGHT - startRow - rowCount - 1) * GAME_CONSTANTS::BOARD_WIDTH)
-        )
-    );
-};
+    int8_t ghostY = currentPiece.y - 1;
+    
+    currentPiece.y = originalY;
+    
+    return ghostY;
+}
 
 bool GameLogic::checkAndClearLines()
 {
-    uint8_t linesCleared    = 0;
-    uint8_t concurrentLines = 0;
-    uint8_t currentRow      = GAME_CONSTANTS::BOARD_HEIGHT - 1;
-    
-    while (currentRow < GAME_CONSTANTS::BOARD_HEIGHT) // uses underflow
+    uint8_t linesCleared = 0;
+
+    for (int y = (CONSTANTS::BOARD_HEIGHT - 1); y >= 0; y--)
     {
-        if (getRow(currentRow) == GAME_CONSTANTS::FULL_LINE_MASK)
+        bool isFull = true;
+        for (int x = 0; x < CONSTANTS::BOARD_WIDTH; x++)
         {
-            ++concurrentLines;
+            if (board[y][x] == 0)
+            {
+                isFull = false;
+                break;
+            }
         }
-        else if (concurrentLines)
+
+        if (isFull)
         {
-            updateRows(currentRow, concurrentLines);
-            linesCleared += concurrentLines;
-            currentRow   += concurrentLines;
-            concurrentLines = 0;
+            linesCleared++;
+            for (int shiftY = y; shiftY > 0; shiftY--)
+            {
+                for (int x = 0; x < CONSTANTS::BOARD_WIDTH; x++)
+                {
+                    board[shiftY][x] = board[shiftY - 1][x];
+                }
+            }
+            for (int x = 0; x < CONSTANTS::BOARD_WIDTH; x++)
+            {
+                board[0][x] = 0;
+            }
+            y++; 
         }
-        --currentRow;
     }
-    
-    if (linesCleared)
+
+    // TODO: This is for detecting a PC for scoring
+    // bool isPerfectClear = true;
+    // for (int x = 0; x < CONSTANTS::BOARD_WIDTH; x++)
+    // {
+    //     if (board[CONSTANTS::BOARD_HEIGHT - 1][x] != 0)
+    //     {
+    //         isPerfectClear = false;
+    //         break;
+    //     }
+    // }
+
+    if (linesCleared > 0)
     {
+        totalLinesCleared += linesCleared;
+        currentCombo++;
+        
+        // Sprint Check
+        if ((totalLinesCleared >= sprintLineCount) && (currentState == GameState::SPRINT))
+        {
+            sprintEndTime = std::chrono::steady_clock::now();
+            currentState = GameState::GAME_OVER;
+
+            auto rawDuration = sprintEndTime - sprintStartTime;
+            float finalTime = std::chrono::duration<float>(rawDuration).count();    
+            TraceLog(LOG_INFO, "Sprint finished in %.3f seconds!", finalTime);
+        }
+        
         updateScore(linesCleared);
         return true;
     }
+
+    currentCombo = -1; 
     return false;
-};
+}
 
 void GameLogic::updateScore(uint8_t linesCleared)
 {
-    uint8_t index = linesCleared + (gamestate.fullByte & 1100); // TODO: Fix
-    score += GAME_CONSTANTS::SCORE_LOOKUP_TABLE[linesCleared];
-};
-
-std::bitset<GAME_CONSTANTS::TILE_COUNT> GameLogic::getPlayfield() const
-{
-    return playfield;
-};
-
-void GameLogic::printBoard() const
-{
-    for (int r = 0; r < GAME_CONSTANTS::BOARD_HEIGHT; ++r)
-    {
-        for (int c = 0; c < GAME_CONSTANTS::BOARD_WIDTH; ++c)
-        {
-            int index = r * GAME_CONSTANTS::BOARD_WIDTH + c;
-            std::cout << (playfield[index] ? "#" : ".");
-        }
-        std::cout << std::endl;
-    }
-    std::cout << std::endl;
-};
-
-
-
-void GameLogic::logBoardState()
-{
-    if (!logFile.is_open()) {
-        return; // Don't do anything if the file isn't open
-    }
-
-    std::bitset<GAME_CONSTANTS::TILE_COUNT> tempBoard = playfield;
-    const std::bitset<16> pieceShape(GAME_DATA::PIECES[currentPiece.pieceIndex].rotations[currentPiece.rotation]);
-    uint8_t rowIndex = currentPiece.position / GAME_CONSTANTS::BOARD_WIDTH;
-    uint8_t columnIndex = currentPiece.position % GAME_CONSTANTS::BOARD_WIDTH;
-
-    for (uint8_t row = 0; row < GAME_CONSTANTS::PIECE_SIZE; ++row)
-    {
-        for (uint8_t column = 0; column < GAME_CONSTANTS::PIECE_SIZE; ++column)
-        {
-            int pieceBitIndex = row * GAME_CONSTANTS::PIECE_SIZE + column;
-            if (pieceShape[pieceBitIndex])
-            {
-                uint16_t boardIndex = ((row + rowIndex) * GAME_CONSTANTS::BOARD_WIDTH) + (column + columnIndex);
-                if (boardIndex < GAME_CONSTANTS::TILE_COUNT)
-                {
-                    tempBoard.set(boardIndex);
-                }
-            }
-        }
-    }
-
-    // Write the board state to the file
-    for (int r = 0; r < GAME_CONSTANTS::BOARD_HEIGHT; ++r)
-    {
-        for (int c = 0; c < GAME_CONSTANTS::BOARD_WIDTH; ++c)
-        {
-            int index = r * GAME_CONSTANTS::BOARD_WIDTH + c;
-            logFile << (tempBoard[index] ? "#" : ".");
-        }
-        logFile << " " << r << std::endl;
-    }
-    logFile << "--------------------" << std::endl; // Separator for clarity
+    // TODO: Add special scoring logic for thigns like Ultra mode and marathon
+    score += (linesCleared * 100) * level; 
 }
