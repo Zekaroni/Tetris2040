@@ -1,0 +1,1 @@
+g++ main.cpp src/GameLogic.cpp src/GameController.cpp -o tetramino.exe -Os -s -ffunction-sections -fdata-sections -Wl,--gc-sections -fno-exceptions -fno-rtti -flto -lraylib -lopengl32 -lgdi32 -lwinmm

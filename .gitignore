@@ -1,3 +1,4 @@
 .vscode
 build
-tests/__pycache__
+*.exe
+tetris_log.txt
