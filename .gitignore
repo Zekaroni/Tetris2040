@@ -1,4 +1,4 @@
 .vscode
 build
+logs
 *.exe
-tetris_log.txt
